@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absensi - SDN Cikampek Barat II</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{display:['Space Grotesk','sans-serif'],body:['DM Sans','sans-serif']}}}}</script>
+  <style>
+    :root{--bg:#0F172A;--bg-deep:#0B1222;--card:#1E293B;--card-hover:#263448;--border:#334155;--text:#F1F5F9;--muted:#94A3B8;--accent:#10B981;--accent-hover:#059669;--accent-glow:rgba(16,185,129,0.12);--warning:#F59E0B;--danger:#EF4444;--info:#06B6D4}
+    *{box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden}
+    body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 15% 50%,rgba(16,185,129,0.04) 0%,transparent 50%),radial-gradient(ellipse at 85% 20%,rgba(6,182,212,0.03) 0%,transparent 50%),radial-gradient(ellipse at 50% 85%,rgba(245,158,11,0.02) 0%,transparent 50%);animation:bgShift 25s ease-in-out infinite alternate;z-index:-1;pointer-events:none}
+    @keyframes bgShift{0%{transform:translate(0,0) rotate(0deg)}100%{transform:translate(-3%,-3%) rotate(3deg)}}
+    .sidebar{background:var(--bg-deep);border-right:1px solid var(--border)}
+    .nav-item{display:flex;align-items:center;gap:.75rem;padding:.75rem 1.5rem;cursor:pointer;color:var(--muted);transition:all .2s;position:relative;border-left:3px solid transparent;font-weight:500;font-size:.9rem}
+    .nav-item:hover{color:var(--text);background:rgba(30,41,59,0.5)}
+    .nav-item.active{color:var(--accent);background:var(--accent-glow);border-left-color:var(--accent)}
+    .nav-item i{width:1.25rem;text-align:center}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:.75rem;padding:1.5rem;transition:all .25s}
+    .card:hover{border-color:rgba(16,185,129,0.3)}
+    .stat-card{position:relative;overflow:hidden}.stat-card::after{content:'';position:absolute;top:-30px;right:-30px;width:100px;height:100px;border-radius:50%;opacity:.06;transition:opacity .3s}.stat-card:hover::after{opacity:.12}
+    .stat-card.emerald::after{background:var(--accent)}.stat-card.cyan::after{background:var(--info)}.stat-card.amber::after{background:var(--warning)}.stat-card.red::after{background:var(--danger)}.stat-card.blue::after{background:#3B82F6}
+    .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.6rem 1.25rem;border-radius:.5rem;font-weight:600;font-size:.875rem;cursor:pointer;transition:all .2s;border:none;font-family:'DM Sans',sans-serif}
+    .btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent-hover);transform:translateY(-1px);box-shadow:0 4px 15px rgba(16,185,129,0.3)}
+    .btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{background:var(--card-hover);border-color:var(--accent)}
+    .btn-danger{background:rgba(239,68,68,0.15);color:var(--danger);border:1px solid rgba(239,68,68,0.3)}.btn-danger:hover{background:rgba(239,68,68,0.25)}
+    .btn-info{background:rgba(6,182,212,0.15);color:var(--info);border:1px solid rgba(6,182,212,0.3)}.btn-info:hover{background:rgba(6,182,212,0.25)}
+    .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+    .input{background:var(--bg);border:1px solid var(--border);border-radius:.5rem;padding:.6rem 1rem;color:var(--text);font-size:.875rem;width:100%;font-family:'DM Sans',sans-serif;transition:border-color .2s}
+    .input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+    .input::placeholder{color:var(--muted)}
+    .data-table{width:100%;border-collapse:separate;border-spacing:0}
+    .data-table thead th{background:var(--bg-deep);color:var(--muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;padding:.75rem 1rem;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
+    .data-table tbody td{padding:.75rem 1rem;border-bottom:1px solid rgba(51,65,85,0.5);font-size:.875rem;vertical-align:middle}
+    .data-table tbody tr{transition:background .15s}.data-table tbody tr:hover{background:rgba(16,185,129,0.04)}
+    .badge{display:inline-flex;align-items:center;gap:.25rem;padding:.2rem .6rem;border-radius:9999px;font-size:.75rem;font-weight:600}
+    .badge-hadir{background:rgba(16,185,129,0.15);color:#34D399}.badge-terlambat{background:rgba(245,158,11,0.15);color:#FBBF24}
+    .badge-pulang{background:rgba(6,182,212,0.15);color:#22D3EE}
+    .badge-sakit{background:rgba(239,68,68,0.15);color:#FCA5A5}
+    .badge-izin{background:rgba(245,158,11,0.15);color:#FBBF24}
+    .badge-alpa{background:rgba(148,163,184,0.15);color:#94A3B8}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}.modal-overlay.show{opacity:1;pointer-events:auto}
+    .modal-content{background:var(--card);border:1px solid var(--border);border-radius:1rem;padding:2rem;width:90%;max-width:500px;transform:translateY(20px) scale(.97);transition:transform .25s;max-height:90vh;overflow-y:auto}.modal-overlay.show .modal-content{transform:translateY(0) scale(1)}
+    .toast{padding:.85rem 1.25rem;border-radius:.5rem;font-size:.875rem;font-weight:500;display:flex;align-items:center;gap:.5rem;animation:toastIn .35s ease-out;box-shadow:0 10px 30px rgba(0,0,0,0.3);border:1px solid transparent;min-width:300px;max-width:440px}
+    .toast-success{background:#065F46;color:#A7F3D0;border-color:#10B981}.toast-error{background:#7F1D1D;color:#FCA5A5;border-color:#EF4444}.toast-info{background:#164E63;color:#A5F3FC;border-color:#06B6D4}
+    @keyframes toastIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}@keyframes toastOut{from{transform:translateX(0);opacity:1}to{transform:translateX(100%);opacity:0}}
+    .page{display:none;animation:pageIn .3s ease-out}.page.active{display:block}@keyframes pageIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    #qr-reader{border-radius:.75rem;overflow:hidden;border:2px solid var(--border)}
+    .scan-flash{animation:scanFlash .4s ease-out}@keyframes scanFlash{0%{box-shadow:0 0 0 0 rgba(16,185,129,0.6)}100%{box-shadow:0 0 0 20px rgba(16,185,129,0)}}
+    .scan-flash-error{animation:scanFlashError .4s ease-out}@keyframes scanFlashError{0%{box-shadow:0 0 0 0 rgba(239,68,68,0.6)}100%{box-shadow:0 0 0 20px rgba(239,68,68,0)}}
+    .tab-btn{padding:.6rem 1.5rem;border-radius:.5rem .5rem 0 0;border:1px solid transparent;border-bottom:none;background:transparent;color:var(--muted);transition:all .2s;font-family:'DM Sans',sans-serif}
+    .tab-btn.active{background:var(--card);color:var(--accent);border-color:var(--border)}.tab-btn:hover:not(.active){color:var(--text)}
+    .tab-content{display:none}.tab-content.active{display:block;animation:pageIn .2s ease-out}
+    ::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+    .empty-state{text-align:center;padding:3rem 1rem;color:var(--muted)}.empty-state i{font-size:3rem;margin-bottom:1rem;opacity:.3}
+    .search-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:.5rem;margin-top:.25rem;max-height:240px;overflow-y:auto;z-index:20;display:none}.search-dropdown.show{display:block}
+    .search-dropdown-item{padding:.6rem 1rem;cursor:pointer;font-size:.875rem;transition:background .15s;border-bottom:1px solid rgba(51,65,85,0.3)}.search-dropdown-item:last-child{border-bottom:none}.search-dropdown-item:hover{background:var(--accent-glow)}
+    .spinner{width:1.25rem;height:1.25rem;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+    .count-up{transition:all .5s ease-out}
+    @media(max-width:1023px){.sidebar{transform:translateX(-100%);transition:transform .3s ease;z-index:50}.sidebar.open{transform:translateX(0)}}
+    #qr-display{display:flex;justify-content:center;padding:1rem}#qr-display img,#qr-display canvas{border-radius:.5rem}
+    .label{font-size:.8rem;font-weight:600;color:var(--muted);margin-bottom:.4rem;display:block;text-transform:uppercase;letter-spacing:.04em}
+    .api-status{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+    .api-status.connected{background:var(--accent);box-shadow:0 0 6px var(--accent)}.api-status.disconnected{background:var(--danger);box-shadow:0 0 6px var(--danger)}.api-status.checking{background:var(--warning);animation:pulse 1s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .school-badge{background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(6,182,212,0.05));border:1px solid rgba(16,185,129,0.2);border-radius:.5rem;padding:.6rem .8rem}
+  </style>
+</head>
+<body>
+  <div id="toastContainer" style="position:fixed;top:1rem;right:1rem;z-index:200;display:flex;flex-direction:column;gap:.5rem"></div>
+  <button id="mobileMenuBtn" onclick="toggleSidebar()" class="lg:hidden fixed top-4 left-4 z-50 w-10 h-10 flex items-center justify-center rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--text)]"><i class="fas fa-bars"></i></button>
+  <div id="sidebarOverlay" onclick="toggleSidebar()" class="lg:hidden fixed inset-0 bg-black/50 z-40 hidden"></div>
+
+  <aside id="sidebar" class="sidebar fixed left-0 top-0 h-full w-64 flex flex-col z-50">
+    <div class="px-5 py-4 border-b border-[var(--border)]">
+      <div class="flex items-center gap-3 mb-3"><div class="w-9 h-9 rounded-lg bg-[var(--accent)] flex items-center justify-center flex-shrink-0"><i class="fas fa-school text-white text-sm"></i></div><div class="min-w-0"><h1 class="font-display font-bold text-sm text-[var(--text)] leading-tight">SDN Cikampek Barat II</h1><p class="text-[0.6rem] text-[var(--muted)]">Sistem Absensi Siswa</p></div></div>
+      <div class="school-badge text-[0.65rem] text-[var(--muted)] space-y-0.5"><div class="flex items-start gap-1.5"><i class="fas fa-map-marker-alt mt-0.5 text-[var(--accent)] text-[0.55rem]"></i><span>Sukamanah - Cikampek Barat</span></div><div class="flex items-start gap-1.5"><i class="fas fa-map-pin mt-0.5 text-[var(--accent)] text-[0.55rem]"></i><span>Kec. Cikampek</span></div></div>
+    </div>
+    <nav class="flex-1 py-4">
+      <div class="px-4 mb-2 text-[0.65rem] font-semibold text-[var(--muted)] uppercase tracking-wider">Menu Utama</div>
+      <a class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+      <a class="nav-item" data-page="siswa" onclick="showPage('siswa')"><i class="fas fa-users"></i><span>Data Siswa</span></a>
+      <a class="nav-item" data-page="absensi" onclick="showPage('absensi')"><i class="fas fa-qrcode"></i><span>Absensi</span></a>
+      <a class="nav-item" data-page="konfigurasi" onclick="showPage('konfigurasi')"><i class="fas fa-sliders"></i><span>Konfigurasi</span></a>
+      <a class="nav-item" data-page="laporan" onclick="showPage('laporan')"><i class="fas fa-file-export"></i><span>Laporan</span></a>
+    </nav>
+    <div class="px-5 py-4 border-t border-[var(--border)]">
+      <div class="flex items-center text-xs text-[var(--muted)] mb-2"><span id="apiStatusDot" class="api-status disconnected"></span><span id="apiStatusText">Memeriksa...</span></div>
+      <div id="currentDate" class="text-xs text-[var(--muted)]"></div>
+      <div id="currentTime" class="text-lg font-display font-bold text-[var(--accent)]"></div>
+    </div>
+  </aside>
+
+  <main class="lg:ml-64 min-h-screen">
+    <header class="sticky top-0 z-30 bg-[var(--bg)]/80 backdrop-blur-md border-b border-[var(--border)] px-6 py-4">
+      <div class="flex items-center justify-between"><div class="lg:hidden w-10"></div><h2 id="pageTitle" class="font-display font-bold text-lg">Dashboard</h2>
+        <button onclick="refreshCurrentPage()" class="w-9 h-9 rounded-lg bg-[var(--card)] border border-[var(--border)] flex items-center justify-center text-[var(--muted)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-all" title="Refresh"><i class="fas fa-sync-alt text-sm"></i></button>
+      </div>
+    </header>
+
+    <div class="p-4 md:p-6">
+
+      <!-- ========== DASHBOARD ========== -->
+      <section id="page-dashboard" class="page active">
+        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+          <div class="card stat-card emerald"><div class="flex items-center justify-between mb-2"><span class="text-[var(--muted)] text-xs font-medium">Total Siswa</span><div class="w-10 h-10 rounded-lg bg-[var(--accent-glow)] flex items-center justify-center"><i class="fas fa-users text-[var(--accent)]"></i></div></div><div id="statTotal" class="text-2xl font-display font-bold count-up">0</div></div>
+          <div class="card stat-card cyan"><div class="flex items-center justify-between mb-2"><span class="text-[var(--muted)] text-xs font-medium">Hadir Hari Ini</span><div class="w-10 h-10 rounded-lg bg-[rgba(6,182,212,0.12)] flex items-center justify-center"><i class="fas fa-check-circle text-[var(--info)]"></i></div></div><div id="statHadir" class="text-2xl font-display font-bold count-up text-[var(--info)]">0</div></div>
+          <div class="card stat-card amber"><div class="flex items-center justify-between mb-2"><span class="text-[var(--muted)] text-xs font-medium">Terlambat</span><div class="w-10 h-10 rounded-lg bg-[rgba(245,158,11,0.12)] flex items-center justify-center"><i class="fas fa-clock text-[var(--warning)]"></i></div></div><div id="statTerlambat" class="text-2xl font-display font-bold text-[var(--warning)] count-up">0</div></div>
+          <div class="card stat-card red"><div class="flex items-center justify-between mb-2"><span class="text-[var(--muted)] text-xs font-medium">Belum Absen</span><div class="w-10 h-10 rounded-lg bg-[rgba(239,68,68,0.12)] flex items-center justify-center"><i class="fas fa-user-times text-[var(--danger)]"></i></div></div><div id="statBelum" class="text-2xl font-display font-bold text-[var(--danger)] count-up">0</div></div>
+          <div class="card stat-card blue"><div class="flex items-center justify-between mb-2"><span class="text-[var(--muted)] text-xs font-medium">Sudah Pulang</span><div class="w-10 h-10 rounded-lg bg-[rgba(59,130,246,0.12)] flex items-center justify-center"><i class="fas fa-sign-out-alt text-[#3B82F6]"></i></div></div><div id="statPulang" class="text-2xl font-display font-bold text-[#3B82F6] count-up">0</div></div>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <div class="card xl:col-span-2"><h3 class="font-display font-semibold text-base mb-4">Tren Absensi 7 Hari Terakhir</h3><div style="position:relative;height:280px"><canvas id="attendanceChart"></canvas></div></div>
+          <div class="card"><h3 class="font-display font-semibold text-base mb-4">Aktivitas Terbaru</h3><div id="recentActivity" class="space-y-2 max-h-[280px] overflow-y-auto"><div class="empty-state py-8"><i class="fas fa-history block"></i><p class="text-sm">Belum ada aktivitas</p></div></div></div>
+        </div>
+      </section>
+
+      <!-- ========== DATA SISWA ========== -->
+      <section id="page-siswa" class="page">
+        <div class="flex flex-col sm:flex-row gap-3 mb-4">
+          <div class="relative flex-1"><i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)] text-sm"></i><input type="text" id="searchSiswa" class="input pl-9" placeholder="Cari nama atau kode QR..." oninput="filterSiswaTable()"></div>
+          <div class="flex gap-2">
+            <button class="btn btn-primary" onclick="openModalTambah()"><i class="fas fa-plus"></i> Tambah Siswa</button>
+            <label class="btn btn-secondary cursor-pointer"><i class="fas fa-file-import"></i> Impor Excel<input type="file" id="fileImport" accept=".xlsx,.xls" class="hidden" onchange="handleImportExcel(event)"></label>
+          </div>
+        </div>
+        <div class="card p-0 overflow-hidden"><div class="overflow-x-auto max-h-[60vh] overflow-y-auto">
+          <table class="data-table"><thead><tr><th style="width:50px">No</th><th>Nama Siswa</th><th>Kelas</th><th>Kode QR</th><th>Tgl Daftar</th><th style="width:140px">Aksi</th></tr></thead>
+          <tbody id="tbodySiswa"><tr><td colspan="6"><div class="empty-state"><i class="fas fa-users block"></i><p class="text-sm">Belum ada data siswa</p></div></td></tr></tbody></table>
+        </div></div>
+      </section>
+
+      <!-- ========== ABSENSI ========== -->
+      <section id="page-absensi" class="page">
+        <div class="flex gap-1 mb-0">
+          <button class="tab-btn active" data-tab="masuk" onclick="switchAbsenTab('masuk')"><i class="fas fa-sign-in-alt mr-1"></i> Absen Masuk</button>
+          <button class="tab-btn" data-tab="pulang" onclick="switchAbsenTab('pulang')"><i class="fas fa-sign-out-alt mr-1"></i> Absen Pulang</button>
+          <button class="tab-btn" data-tab="tidak" onclick="switchAbsenTab('tidak')"><i class="fas fa-user-xmark mr-1"></i> Tidak Hadir</button>
+        </div>
+
+        <!-- Scanner (shared masuk & pulang) -->
+        <div id="scanContainer" class="card mb-0" style="border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:0">
+          <div class="max-w-lg mx-auto py-4">
+            <div id="qr-reader" style="width:100%"></div>
+            <div id="scanResult" class="mt-4 hidden"><div id="scanResultContent" class="rounded-lg p-4 border text-center"></div></div>
+            <div class="mt-3 text-center"><button id="btnToggleScan" class="btn btn-secondary" onclick="toggleScanner()"><i class="fas fa-qrcode"></i> Mulai Scanner</button></div>
+          </div>
+        </div>
+
+        <!-- Card dengan 3 tab contents -->
+        <div class="card" style="border-top-left-radius:0;border-top-right-radius:0;">
+
+          <!-- Tab Masuk -->
+          <div id="tab-masuk" class="tab-content active">
+            <div class="max-w-lg mx-auto py-4">
+              <label class="label">Cari Siswa</label>
+              <div class="relative" id="swMasukWrap">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)] text-sm"></i>
+                <input type="text" id="searchMasuk" class="input pl-9" placeholder="Ketik nama atau kode QR..." oninput="handleAbsenSearch('searchMasuk','dropMasuk')" onfocus="handleAbsenSearch('searchMasuk','dropMasuk')">
+                <div id="dropMasuk" class="search-dropdown"></div>
+              </div>
+              <div id="masukInfo" class="mt-4 hidden">
+                <div class="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
+                  <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-[var(--accent-glow)] flex items-center justify-center text-[var(--accent)] font-bold text-lg font-display" id="avatar">?</div>
+                    <div>
+                      <div id="nameMasuk" class="font-semibold"></div>
+                      <div id="classMasuk" class="text-sm text-[var(--muted)]"></div>
+                      <div id="codeMasuk" class="text-xs text-[var(--muted)] font-mono mt-0.5"></div>
+                    </div>
+                  </div>
+                  <div class="flex gap-3 mt-4">
+                    <button id="btnMasuk" class="btn btn-primary flex-1" onclick="doAbsensi('masuk')"><i class="fas fa-sign-in-alt"></i> Absen Masuk</button>
+                  </div>
+                </div>
+              </div>
+              <div id="emptyMasuk" class="text-center py-10 text-[var(--muted)]"><i class="fas fa-user-check text-4xl opacity-20 block mb-3"></i><p class="text-sm">Cari siswa untuk memulai absensi</p></div>
+            </div>
+          </div>
+
+          <!-- Tab Pulang -->
+          <div id="tab-pulang" class="tab-content">
+            <div class="max-w-lg mx-auto py-4">
+              <label class="label">Cari Siswa</label>
+              <div class="relative" id="swPulangWrap">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)] text-sm"></i>
+                <input type="text" id="searchPulang" class="input pl-9" placeholder="Ketik nama atau kode QR..." oninput="handleAbsenSearch('searchPulang','dropPulang')" onfocus="handleAbsenSearch('searchPulang','dropPulang')">
+                <div id="dropPulang" class="search-dropdown"></div>
+              </div>
+              <div id="pulangInfo" class="mt-4 hidden">
+                <div class="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
+                  <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-[var(--accent-glow)] flex items-center justify-center text-[var(--accent)] font-bold text-lg font-display" id="avatarPulang">?</div>
+                    <div>
+                      <div id="namePulang" class="font-semibold"></div>
+                      <div id="classPulang" class="text-sm text-[var(--muted)]"></div>
+                      <div id="codePulang" class="text-xs text-[var(--muted)] font-mono mt-0.5"></div>
+                    </div>
+                  </div>
+                  <div class="flex gap-3 mt-4">
+                    <button id="btnPulang" class="btn btn-info flex-1" onclick="doAbsensi('pulang')"><i class="fas fa-sign-out-alt"></i> Absen Pulang</button>
+                  </div>
+                </div>
+              </div>
+              <div id="emptyPulang" class="text-center py-10 text-[var(--muted)]"><i class="fas fa-user-check text-4xl opacity-20 block mb-3"></i><p class="text-sm">Cari siswa untuk memulai absensi</p></div>
+            </div>
+          </div>
+
+          <!-- Tab Tidak Hadir -->
+          <div id="tab-tidak" class="tab-content">
+            <div class="max-w-lg mx-auto py-4 space-y-4">
+              <div>
+                <label class="label">Pilih Kelas</label>
+                <select id="tidakKelas" class="input" style="max-width:300px" onchange="loadSiswaByKelas()">
+                  <option value="">-- Pilih Kelas --</option>
+                </select>
+              </div>
+              <div>
+                <label class="label">Pilih Siswa</label>
+                <select id="tidakSiswa" class="input" style="max-width:100%">
+                  <option value="">-- Pilih Siswa --</option>
+                </select>
+              </div>
+              <div>
+                <label class="label">Keterangan</label>
+                <select id="tidakKeterangan" class="input" style="max-width:300px">
+                  <option value="">-- Pilih Keterangan --</option>
+                  <option value="Sakit">Sakit</option>
+                  <option value="Izin">Izin</option>
+                  <option value="Alpa">Alpa</option>
+                </select>
+              </div>
+              <button id="btnTidak" class="btn btn-danger w-full" onclick="doTidakHadir()"><i class="fas fa-user-xmark"></i> Rekam Ketidakhadiran</button>
+              <div id="emptyTidak" class="text-center py-10 text-[var(--muted)]"><i class="fas fa-user-xmark text-4xl opacity-20 block mb-3"></i><p class="text-sm">Pilih kelas, siswa, dan keterangan untuk merekam ketidakhadiran</p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== KONFIGURASI ========== -->
+      <section id="page-konfigurasi" class="page">
+        <div class="max-w-2xl space-y-4">
+          <div class="card">
+            <h3 class="font-display font-semibold text-base mb-1">Jam Default (Fallback)</h3>
+            <p class="text-sm text-[var(--muted)] mb-5">Digunakan jika kelas belum memiliki jadwal khusus.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div><label class="label">Jam Masuk Default</label><div class="flex items-center gap-3"><input type="time" id="configJamMasuk" class="input" style="max-width:200px"><span class="text-sm text-[var(--muted)]">WIB</span></div></div>
+              <div><label class="label">Jam Pulang Default</label><div class="flex items-center gap-3"><input type="time" id="configJamPulang" class="input" style="max-width:200px"><span class="text-sm text-[var(--muted)]">WIB</span></div></div>
+            </div>
+            <button class="btn btn-primary mt-5" onclick="saveConfig()"><i class="fas fa-save"></i> Simpan Default</button>
+          </div>
+          <div class="card p-0 overflow-hidden">
+            <div class="p-5 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div><h3 class="font-display font-semibold text-base mb-1">Jadwal Per Kelas</h3><p class="text-sm text-[var(--muted)]">Atur jam masuk & pulang spesifik per kelas.</p></div>
+              <button class="btn btn-primary" onclick="openModalJadwal()"><i class="fas fa-plus"></i> Tambah Jadwal</button>
+            </div>
+            <div class="overflow-x-auto"><table class="data-table"><thead><tr><th style="width:50px">No</th><th>Kelas</th><th>Jam Masuk</th><th>Jam Pulang</th><th style="width:120px">Aksi</th></tr></thead><tbody id="jadwalTableBody"><tr><td colspan="5"><div class="empty-state py-6"><i class="fas fa-calendar-alt block"></i><p class="text-sm">Belum ada jadwal kelas</p></div></td></tr></tbody></table></div>
+          </div>
+          <div class="card"><h3 class="font-display font-semibold text-base mb-1">Informasi Sistem</h3><div class="mt-3 p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-sm space-y-1"><div class="flex justify-between"><span class="text-[var(--muted)]">Versi</span><span>1.6.0</span></div><div class="flex justify-between"><span class="text-[var(--muted)]">Format Kode QR</span><span>Kelas-00xx</span></div><div class="flex justify-between"><span class="text-[var(--muted)]">Backend</span><span>Google Apps Script</span></div><div class="flex justify-between"><span class="text-[var(--muted)]">Frontend</span><span>GitHub Pages</span></div></div></div>
+        </div>
+      </section>
+
+      <!-- ========== LAPORAN ========== -->
+      <section id="page-laporan" class="page">
+        <div class="card mb-4">
+          <div class="flex flex-col sm:flex-row gap-3 items-end">
+            <div><label class="label">Tanggal</label><input type="date" id="laporanTanggal" class="input" style="max-width:200px"></div>
+            <div><label class="label">Kelas</label><select id="laporanKelas" class="input" style="max-width:180px"><option value="Semua">Semua Kelas</option></select></div>
+            <button class="btn btn-primary" onclick="loadLaporan()"><i class="fas fa-search"></i> Tampilkan</button>
+            <button class="btn btn-secondary" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Ekspor Excel</button>
+          </div>
+        </div>
+        <div class="card p-0 overflow-hidden"><div class="overflow-x-auto max-h-[60vh] overflow-y-auto">
+          <table class="data-table"><thead><tr><th style="width:50px">No</th><th>Nama Siswa</th><th>Kelas</th><th>Tanggal</th><th>Jam Masuk</th><th>Jam Pulang</th><th>Status</th></tr></thead>
+          <tbody id="tbodyLaporan"><tr><td colspan="7"><div class="empty-state"><i class="fas fa-file-alt block"></i><p class="text-sm">Pilih filter untuk menampilkan laporan</p></div></td></tr></tbody></table>
+        </div></div>
+        <div id="laporanSummary" class="mt-3 text-sm text-[var(--muted)] hidden"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- MODAL TAMBAH SISWA -->
+  <div id="modalTambah" class="modal-overlay" onclick="if(event.target===this)closeModal('modalTambah')">
+    <div class="modal-content">
+      <div class="flex items-center justify-between mb-5"><h3 class="font-display font-bold text-lg">Tambah Siswa Baru</h3><button onclick="closeModal('modalTambah')" class="text-[var(--muted)] hover:text-[var(--text)]"><i class="fas fa-times"></i></button></div>
+      <div class="space-y-4">
+        <div><label class="label">Nama Siswa</label><input type="text" id="inputNama" class="input" placeholder="Masukkan nama lengkap"></div>
+        <div><label class="label">Kelas</label><input type="text" id="inputKelas" class="input" placeholder="Contoh: 1A, 2B, 3C"></div>
+        <div class="p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-sm text-[var(--muted)] flex items-start gap-2"><i class="fas fa-info-circle text-[var(--info)] mt-0.5"></i><span>Kode QR otomatis dibuat dengan format <code class="text-[var(--accent)]">Kelas-00xx</code> sesuai ID.</span></div>
+      </div>
+      <div class="flex gap-3 mt-6"><button class="btn btn-secondary flex-1" onclick="closeModal('modalTambah')">Batal</button><button id="btnSubmitSiswa" class="btn btn-primary flex-1" onclick="submitTambahSiswa()"><i class="fas fa-save"></i> Simpan</button></div>
+    </div>
+  </div>
+
+  <!-- MODAL JADWAL -->
+  <div id="modalJadwal" class="modal-overlay" onclick="if(event.target===this)closeModal('modalJadwal')">
+    <div class="modal-content">
+      <div class="flex items-center justify-between mb-5"><h3 id="modalJadwalTitle" class="font-display font-bold text-lg">Tambah Jadwal Kelas</h3><button onclick="closeModal('modalJadwal')" class="text-[var(--muted)] hover:text-[var(--text)]"><i class="fas fa-times"></i></button></div>
+      <div class="space-y-4">
+        <div><label class="label">Nama Kelas</label><input type="text" id="inputJadwalKelas" class="input" placeholder="Contoh: 1A, 2B, 3C"></div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="label">Jam Masuk</label><input type="time" id="inputJadwalMasuk" class="input"></div>
+          <div><label class="label">Jam Pulang</label><input type="time" id="inputJadwalPulang" class="input"></div>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6"><button class="btn btn-secondary flex-1" onclick="closeModal('modalJadwal')">Batal</button><button id="btnSubmitJadwal" class="btn btn-primary flex-1" onclick="submitJadwal()"><i class="fas fa-save"></i> Simpan</button></div>
+    </div>
+  </div>
+
+  <!-- MODAL QR -->
+  <div id="modalQR" class="modal-overlay" onclick="if(event.target===this)closeModal('modalQR')">
+    <div class="modal-content text-center">
+      <div class="flex items-center justify-between mb-4"><h3 class="font-display font-bold text-lg">Kode QR Siswa</h3><button onclick="closeModal('modalQR')" class="text-[var(--muted)] hover:text-[var(--text)]"><i class="fas fa-times"></i></button></div>
+      <div id="qr-display" class="bg-white rounded-xl p-4 inline-block mb-4"></div>
+      <div id="qrStudentName" class="font-display font-bold text-lg"></div>
+      <div id="qrStudentDetail" class="text-sm text-[var(--muted)] mb-1"></div>
+      <div id="qrStudentCode" class="font-mono text-2xl font-bold text-[var(--accent)] mb-4"></div>
+      <button class="btn btn-primary" onclick="downloadQR()"><i class="fas fa-download"></i> Download QR</button>
+    </div>
+  </div>
+
+  <!-- MODAL KONFIRMASI -->
+  <div id="modalKonfirmasi" class="modal-overlay" onclick="if(event.target===this)closeModal('modalKonfirmasi')">
+    <div class="modal-content text-center">
+      <div class="w-14 h-14 rounded-full bg-[rgba(239,68,68,0.12)] flex items-center justify-center mx-auto mb-4"><i class="fas fa-exclamation-triangle text-[var(--danger)] text-xl"></i></div>
+      <h3 id="konfirmasiTitle" class="font-display font-bold text-lg mb-2">Konfirmasi</h3>
+      <p id="konfirmasiMessage" class="text-sm text-[var(--muted)] mb-6"></p>
+      <div class="flex gap-3"><button class="btn btn-secondary flex-1" onclick="closeModal('modalKonfirmasi')">Batal</button><button id="btnKonfirmasiYa" class="btn btn-danger flex-1">Hapus</button></div>
+    </div>
+  </div>
+
+  <script>
+    // =============================================
+    // KONFIGURASI API
+    // =============================================
+    var API_URL = 'https://script.google.com/macros/s/AKfycbxvtyYmK4E2Y78JjvBg4inDv9ENsI-PAPISSjUS3z5krj38U6CRovXODk5n-TRl-naY/exec';
+
+    // =============================================
+    // API WRAPPER
+    // =============================================
+    function apiGet(action, params) {
+      params = params || {};
+      var url = new URL(API_URL);
+      url.searchParams.set('action', action);
+      Object.keys(params).forEach(function(k) { url.searchParams.set(k, params[k]); });
+      return fetch(url.toString(), { method: 'GET', redirect: 'follow' })
+        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function(j) { if (!j.success) throw new Error((j.data && j.data.error) ? j.data.error : 'Error server'); return j.data; });
+    }
+
+    function apiPost(action, data) {
+      data = data || {};
+      var payload = { action: action };
+      Object.keys(data).forEach(function(key) { payload[key] = data[key]; });
+      return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload), redirect: 'follow' })
+        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function(j) { if (!j.success) throw new Error((j.data && j.data.error) ? j.data.error : 'Error server'); return j.data; });
+    }
+
+    function checkApiConnection() {
+      var dot = document.getElementById('apiStatusDot'), txt = document.getElementById('apiStatusText');
+      dot.className = 'api-status checking'; txt.textContent = 'Menguji koneksi...';
+      apiGet('ping').then(function() { dot.className = 'api-status connected'; txt.textContent = 'Terhubung'; })
+        .catch(function(e) { dot.className = 'api-status disconnected'; txt.textContent = 'Gagal: ' + e.message; });
+    }
+
+    // =============================================
+    // SUARA
+    // =============================================
+    function playSuccessBeep() {
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var o1 = ctx.createOscillator(), g1 = ctx.createGain();
+        o1.connect(g1); g1.connect(ctx.destination); o1.frequency.value = 880; o1.type = 'sine'; g1.gain.value = 0.25;
+        o1.start(ctx.currentTime); o1.stop(ctx.currentTime + 0.12);
+        var o2 = ctx.createOscillator(), g2 = ctx.createGain();
+        o2.connect(g2); g2.connect(ctx.destination); o2.frequency.value = 1318; o2.type = 'sine'; g2.gain.value = 0.25;
+        o2.start(ctx.currentTime + 0.13); o2.stop(ctx.currentTime + 0.3);
+        setTimeout(function() { ctx.close(); }, 400);
+      } catch(e) {}
+    }
+
+    function playErrorBeep() {
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination); o.frequency.value = 250; o.type = 'square'; g.gain.value = 0.15;
+        o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.3);
+        setTimeout(function() { ctx.close(); }, 400);
+      } catch(e) {}
+    }
+
+    // =============================================
+    // UTILITAS
+    // =============================================
+    function showToast(msg, type) {
+      type = type || 'info';
+      var c = document.getElementById('toastContainer'), t = document.createElement('div');
+      t.className = 'toast toast-' + type;
+      var ic = type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : 'info-circle';
+      t.innerHTML = '<i class="fas fa-' + ic + '"></i><span>' + msg + '</span>';
+      c.appendChild(t);
+      setTimeout(function() { t.style.animation = 'toastOut .3s ease-in forwards'; setTimeout(function() { t.remove(); }, 300); }, 4000);
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('show'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('hidden'); }
+    function formatTanggal(s) { if (!s) return '-'; try { return new Date(s + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }); } catch(e) { return s; } }
+    function escapeHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+    function updateClock() {
+      var n = new Date();
+      document.getElementById('currentDate').textContent = n.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      document.getElementById('currentTime').textContent = n.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    setInterval(updateClock, 1000); updateClock();
+
+    // =============================================
+    // NAVIGASI
+    // =============================================
+    var currentPage = 'dashboard';
+    var pageTitles = { dashboard: 'Dashboard', siswa: 'Data Siswa', absensi: 'Absensi', konfigurasi: 'Konfigurasi', laporan: 'Laporan' };
+
+    function showPage(page) {
+      if (currentPage === 'absensi' && page !== 'absensi' && scannerRunning) stopScanner();
+      currentPage = page;
+      document.getElementById('pageTitle').textContent = pageTitles[page];
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.toggle('active', el.getAttribute('data-page') === page); });
+      document.querySelectorAll('.page').forEach(function(el) { el.classList.toggle('active', el.id === 'page-' + page); });
+      if (window.innerWidth < 1024) { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.add('hidden'); }
+      loadPageData(page);
+    }
+
+    function loadPageData(page) {
+      if (page === 'dashboard') loadDashboard();
+      else if (page === 'siswa') loadSiswa();
+      else if (page === 'absensi') { switchAbsenTab(currentAbsenTab); }
+      else if (page === 'konfigurasi') { loadKonfigurasi(); loadJadwal(); }
+      else if (page === 'laporan') { loadKelasDropdown(); loadLaporan(); }
+    }
+
+    function refreshCurrentPage() { loadPageData(currentPage); showToast('Data berhasil di-refresh', 'success'); }
+
+    // =============================================
+    // DASHBOARD
+    // =============================================
+    var chartInstance = null;
+
+    function loadDashboard() {
+      apiGet('getDashboard').then(function(d) {
+        animateCount('statTotal', d.totalSiswa);
+        animateCount('statHadir', d.hadir);
+        animateCount('statTerlambat', d.terlambat);
+        animateCount('statBelum', d.belumAbsen);
+        animateCount('statPulang', d.sudahPulang);
+        renderChart(d.last7Days, d.last7Hadir, d.last7Terlambat);
+        var a = document.getElementById('recentActivity');
+        if (!d.recentActivity || d.recentActivity.length === 0) { a.innerHTML = '<div class="empty-state py-8"><i class="fas fa-history block"></i><p class="text-sm">Belum ada aktivitas</p></div>'; }
+        else {
+          a.innerHTML = d.recentActivity.map(function(r) {
+            var bc = r.status === 'Hadir' ? 'badge-hadir' : r.status === 'Terlambat' ? 'badge-terlambat' : r.status === 'Pulang' ? 'badge-pulang' : (r.status === 'Sakit' ? 'badge-sakit' : (r.status === 'Izin' ? 'badge-izin' : 'badge-alpa'));
+            return '<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-[rgba(16,185,129,0.04)] transition-colors"><div class="w-8 h-8 rounded-full bg-[var(--accent-glow)] flex items-center justify-center text-[var(--accent)] text-xs font-bold flex-shrink-0">' + escapeHtml(r.nama.charAt(0)) + '</div><div class="flex-1 min-w-0"><div class="text-sm font-medium truncate">' + escapeHtml(r.nama) + '</div><div class="text-xs text-[var(--muted)]">' + escapeHtml(r.kelas) + ' &middot; ' + formatTanggal(r.tanggal) + '</div></div><span class="badge ' + bc + '">' + escapeHtml(r.status) + '</span></div>';
+          }).join('');
+        }
+      }).catch(function(e) { showToast('Gagal memuat dashboard: ' + e.message, 'error'); });
+    }
+
+    function animateCount(id, target) {
+      var el = document.getElementById(id), cur = parseInt(el.textContent) || 0;
+      if (cur === target) return;
+      var step = target > cur ? 1 : -1, speed = Math.max(30, 300 / Math.abs(target - cur));
+      var iv = setInterval(function() { cur += step; el.textContent = cur; if (cur === target) clearInterval(iv); }, speed);
+    }
+
+    function renderChart(labels, hData, tData) {
+      var ctx = document.getElementById('attendanceChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Hadir', data: hData, backgroundColor: 'rgba(16,185,129,0.7)', borderColor: '#10B981', borderWidth: 1, borderRadius: 6, borderSkipped: false },
+            { label: 'Terlambat', data: tData, backgroundColor: 'rgba(245,158,11,0.7)', borderColor: '#F59E0B', borderWidth: 1, borderRadius: 6, borderSkipped: false }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94A3B8', font: { family: 'DM Sans', size: 12 }, usePointStyle: true, pointStyle: 'rectRounded' } }, tooltip: { backgroundColor: '#1E293B', titleColor: '#F1F5F9', bodyColor: '#94A3B8', borderColor: '#334155', borderWidth: 1, cornerRadius: 8, padding: 12 } }, scales: { x: { grid: { color: 'rgba(51,65,85,0.3)' }, ticks: { color: '#94A3B8', font: { family: 'DM Sans', size: 11 } } }, y: { beginAtZero: true, grid: { color: 'rgba(51,65,85,0.3)' }, ticks: { color: '#94A3B8', font: { family: 'DM Sans', size: 11 }, stepSize: 1, callback: function(v) { return Number.isInteger(v) ? v : null; } } } } }
+      });
+    }
+
+    // =============================================
+    // DATA SISWA
+    // =============================================
+    var allSiswa = [];
+
+    function loadSiswa() {
+      apiGet('getSiswa').then(function(d) { allSiswa = d; renderSiswaTable(allSiswa); }).catch(function(e) { showToast('Gagal memuat: ' + e.message, 'error'); });
+    }
+
+    function renderSiswaTable(data) {
+      var tb = document.getElementById('tbodySiswa');
+      if (!data || data.length === 0) { tb.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-users block"></i><p class="text-sm">Belum ada data siswa</p></div></td></tr>'; return; }
+      tb.innerHTML = data.map(function(s, i) {
+        return '<tr><td class="text-[var(--muted)]">' + (i+1) + '</td><td><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-full bg-[var(--accent-glow)] flex items-center justify-center text-[var(--accent)] text-xs font-bold flex-shrink-0">' + escapeHtml(s.nama.charAt(0)) + '</div><span class="font-medium">' + escapeHtml(s.nama) + '</span></div></td><td>' + escapeHtml(s.kelas) + '</td><td><code class="text-[var(--accent)] bg-[var(--accent-glow)] px-2 py-0.5 rounded text-xs font-mono">' + escapeHtml(s.kodeQR) + '</code></td><td class="text-[var(--muted)] text-sm">' + formatTanggal(s.tanggalDaftar) + '</td><td><div class="flex gap-1"><button class="btn btn-secondary py-1 px-2 text-xs" onclick="showQR(\'' + escapeHtml(s.kodeQR) + '\',\'' + escapeHtml(s.nama) + '\',\'' + escapeHtml(s.kelas) + '\')"><i class="fas fa-qrcode"></i></button><button class="btn btn-danger py-1 px-2 text-xs" onclick="confirmDelete(' + s.rowIndex + ',\'' + escapeHtml(s.nama) + '\')"><i class="fas fa-trash"></i></button></div></td></tr>';
+      }).join('');
+    }
+
+    function filterSiswaTable() {
+      var q = document.getElementById('searchSiswa').value.toLowerCase();
+      renderSiswaTable(allSiswa.filter(function(s) { return s.nama.toLowerCase().indexOf(q) !== -1 || s.kodeQR.toLowerCase().indexOf(q) !== -1 || s.kelas.toLowerCase().indexOf(q) !== -1; }));
+    }
+
+    function openModalTambah() {
+      document.getElementById('inputNama').value = ''; document.getElementById('inputKelas').value = '';
+      openModal('modalTambah');
+      setTimeout(function() { document.getElementById('inputNama').focus(); }, 200);
+    }
+
+    function submitTambahSiswa() {
+      var nm = document.getElementById('inputNama').value.trim(), kl = document.getElementById('inputKelas').value.trim();
+      if (!nm) { showToast('Nama siswa wajib diisi', 'error'); return; }
+      if (!kl) { showToast('Kelas wajib diisi', 'error'); return; }
+      var btn = document.getElementById('btnSubmitSiswa');
+      btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px"></div> Menyimpan...';
+      apiPost('addSiswa', { data: { nama: nm, kelas: kl } }).then(function(r) {
+        showToast('Siswa "' + nm + '" ditambahkan. Kode: ' + r.kode, 'success');
+        closeModal('modalTambah');
+        loadSiswa();
+      }).catch(function(e) { showToast('Gagal: ' + e.message, 'error'); }).finally(function() { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Simpan'; });
+    }
+
+    function handleImportExcel(event) {
+      var file = event.target.files[0]; if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var d = new Uint8Array(e.target.result);
+          var wb = XLSX.read(d, { type: 'array' });
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+          if (json.length === 0) { showToast('File Excel kosong', 'error'); return; }
+          var f = json[0];
+          if (!(f.Nama||f.nama||f.NAMA) || !(f.Kelas||f.kelas||f.KELAS)) { showToast('Pastikan ada kolom "Nama" dan "Kelas"', 'error'); return; }
+          var imp = json.map(function(r) {
+            return { nama: (r.Nama||r.nama||r.NAMA||'').toString().trim(), kelas: (r.Kelas||r.kelas||r.KELAS||'').toString().trim() };
+          }).filter(function(r) { return r.nama !== ''; });
+          if (imp.length === 0) { showToast('Tidak ada data valid', 'error'); return; }
+          showToast('Mengimpor ' + imp.length + ' data...', 'info');
+          apiPost('importSiswa', { data: imp }).then(function(r) { showToast('Berhasil mengimpor ' + r.count + ' siswa', 'success'); loadSiswa(); }).catch(function(e) { showToast('Gagal: ' + e.message, 'error'); });
+        } catch(err) { showToast('Gagal baca file: ' + err.message, 'error'); }
+      };
+      reader.readAsArrayBuffer(file);
+      event.target.value = '';
+    }
+
+    function confirmDelete(ri, nm) {
+      document.getElementById('konfirmasiTitle').textContent = 'Hapus Siswa?';
+      document.getElementById('konfirmasiMessage').textContent = 'Data "' + nm + '" akan dihapus permanen.';
+      document.getElementById('btnKonfirmasiYa').onclick = function() {
+        apiPost('deleteSiswa', { rowIndex: ri }).then(function() { showToast('Berhasil dihapus', 'success'); closeModal('modalKonfirmasi'); loadSiswa(); }).catch(function(e) { showToast('Gagal: ' + e.message, 'error'); });
+      };
+      openModal('modalKonfirmasi');
+    }
+
+    var currentQRInstance = null;
+    function showQR(kode, nama, kelas) {
+      document.getElementById('qrStudentName').textContent = nama;
+      document.getElementById('qrStudentDetail').textContent = 'Kelas: ' + kelas;
+      document.getElementById('qrStudentCode').textContent = kode;
+      var qd = document.getElementById('qr-display'); qd.innerHTML = '';
+      currentQRInstance = new QRCode(qd, { text: kode, width: 200, height: 200, colorDark: '#0F172A', colorLight: '#FFFFFF', correctLevel: QRCode.CorrectLevel.H });
+      openModal('modalQR');
+    }
+
+    function downloadQR() {
+      var c = document.querySelector('#qr-display canvas');
+      if (c) { var a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'QR-' + document.getElementById('qrStudentCode').textContent + '.png'; a.click(); }
+      else { var img = document.querySelector('#qr-display img'); if (img) { var a2 = document.createElement('a'); a2.href = img.src; a2.download = 'QR-' + document.getElementById('qrStudentCode').textContent + '.png'; a2.click(); } }
+      showToast('QR didownload', 'success');
+    }
+
+    // =============================================
+    // ABSENSI - 3 TAB (MASUK / PULANG / TIDAK HADIR)
+    // =============================================
+    var currentAbsenTab = 'masuk';
+    var scannerRunning = false;
+    var html5QrCode = null;
+    var selectedSiswaMasuk = null;
+    var selectedSiswaPulang = null;
+
+    function switchAbsenTab(tab) {
+      currentAbsenTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(function(el) { el.classList.toggle('active', el.getAttribute('data-tab') === tab); });
+      document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.toggle('active', el.id === 'tab-' + tab); });
+
+      // Tampilkan/sembunyikan scanner container
+      var scanContainer = document.getElementById('scanContainer');
+      if (tab === 'tidak') {
+        scanContainer.style.display = 'none';
+        if (scannerRunning) stopScanner();
+      } else {
+        scanContainer.style.display = 'block';
+      }
+    }
+
+    // =============================================
+    // QR SCANNER
+    // =============================================
+    function startScanner() {
+      if (scannerRunning) return;
+      html5QrCode = new Html5Qrcode("qr-reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onScanSuccess,
+        function() {}
+      ).then(function() {
+        scannerRunning = true;
+        document.getElementById('btnToggleScan').innerHTML = '<i class="fas fa-stop"></i> Stop Scanner';
+      }).catch(function(e) {
+        showToast('Gagal memulai scanner: ' + e.message, 'error');
+      });
+    }
+
+    function stopScanner() {
+      if (!scannerRunning || !html5QrCode) return;
+      html5QrCode.stop().then(function() {
+        scannerRunning = false;
+        document.getElementById('btnToggleScan').innerHTML = '<i class="fas fa-qrcode"></i> Mulai Scanner';
+      }).catch(function() {
+        scannerRunning = false;
+        document.getElementById('btnToggleScan').innerHTML = '<i class="fas fa-qrcode"></i> Mulai Scanner';
+      });
+    }
+
+    function toggleScanner() {
+      if (scannerRunning) stopScanner();
+      else startScanner();
+    }
+
+    function onScanSuccess(decodedText) {
+      playSuccessBeep();
+      var reader = document.getElementById('qr-reader');
+      reader.classList.add('scan-flash');
+      setTimeout(function() { reader.classList.remove('scan-flash'); }, 500);
+      processQRCode(decodedText);
+    }
+
+    function processQRCode(kode) {
+      // Cari dari cache allSiswa dulu
+      var found = null;
+      for (var i = 0; i < allSiswa.length; i++) {
+        if (allSiswa[i].kodeQR === kode) { found = allSiswa[i]; break; }
+      }
+
+      if (found) {
+        handleScannedSiswa(found);
+      } else {
+        // Fallback ke API
+        apiGet('getSiswaByKode', { kode: kode }).then(function(s) {
+          if (!s) {
+            playErrorBeep();
+            showScanResult(false, 'Kode QR "' + kode + '" tidak ditemukan');
+            return;
+          }
+          handleScannedSiswa(s);
+        }).catch(function(e) {
+          playErrorBeep();
+          showScanResult(false, e.message);
+        });
+      }
+    }
+
+    function handleScannedSiswa(s) {
+      if (currentAbsenTab === 'masuk') {
+        selectedSiswaMasuk = s;
+        document.getElementById('searchMasuk').value = s.nama;
+        document.getElementById('avatar').textContent = s.nama.charAt(0);
+        document.getElementById('nameMasuk').textContent = s.nama;
+        document.getElementById('classMasuk').textContent = 'Kelas: ' + s.kelas;
+        document.getElementById('codeMasuk').textContent = s.kodeQR;
+        document.getElementById('masukInfo').classList.remove('hidden');
+        document.getElementById('emptyMasuk').classList.add('hidden');
+        doAbsensi('masuk');
+      } else if (currentAbsenTab === 'pulang') {
+        selectedSiswaPulang = s;
+        document.getElementById('searchPulang').value = s.nama;
+        document.getElementById('avatarPulang').textContent = s.nama.charAt(0);
+        document.getElementById('namePulang').textContent = s.nama;
+        document.getElementById('classPulang').textContent = 'Kelas: ' + s.kelas;
+        document.getElementById('codePulang').textContent = s.kodeQR;
+        document.getElementById('pulangInfo').classList.remove('hidden');
+        document.getElementById('emptyPulang').classList.add('hidden');
+        doAbsensi('pulang');
+      }
+      showScanResult(true, s.nama + ' — ' + s.kelas);
+    }
+
+    function showScanResult(success, msg) {
+      var el = document.getElementById('scanResult');
+      var content = document.getElementById('scanResultContent');
+      el.classList.remove('hidden');
+      if (success) {
+        content.className = 'rounded-lg p-4 border text-center bg-[rgba(16,185,129,0.08)] border-[rgba(16,185,129,0.3)] text-[#34D399]';
+        content.innerHTML = '<i class="fas fa-check-circle text-2xl mb-2 block"></i><div class="font-semibold">' + escapeHtml(msg) + '</div>';
+      } else {
+        content.className = 'rounded-lg p-4 border text-center bg-[rgba(239,68,68,0.08)] border-[rgba(239,68,68,0.3)] text-[#FCA5A5]';
+        content.innerHTML = '<i class="fas fa-times-circle text-2xl mb-2 block"></i><div class="font-semibold">' + escapeHtml(msg) + '</div>';
+      }
+      setTimeout(function() { el.classList.add('hidden'); }, 5000);
+    }
+
+    // =============================================
+    // SEARCH DROPDOWN ABSENSI
+    // =============================================
+    function handleAbsenSearch(inputId, dropdownId) {
+      var q = document.getElementById(inputId).value.toLowerCase().trim();
+      var dd = document.getElementById(dropdownId);
+      if (q.length === 0) { dd.classList.remove('show'); return; }
+
+      var filtered = allSiswa.filter(function(s) {
+        return s.nama.toLowerCase().indexOf(q) !== -1 || s.kodeQR.toLowerCase().indexOf(q) !== -1;
+      });
+
+      if (filtered.length === 0) { dd.classList.remove('show'); return; }
+
+      dd.innerHTML = filtered.slice(0, 10).map(function(s) {
+        return '<div class="search-dropdown-item" data-kode="' + escapeHtml(s.kodeQR) + '" onclick="selectAbsenSiswa(\'' + escapeHtml(s.kodeQR) + '\',\'' + dropdownId + '\')">' + escapeHtml(s.nama) + ' <span class="text-[var(--muted)] text-xs ml-1">(' + escapeHtml(s.kelas) + ')</span></div>';
+      }).join('');
+      dd.classList.add('show');
+    }
+
+    function selectAbsenSiswa(kode, dropdownId) {
+      document.getElementById(dropdownId).classList.remove('show');
+      var s = allSiswa.find(function(x) { return x.kodeQR === kode; });
+      if (!s) return;
+
+      if (dropdownId === 'dropMasuk') {
+        selectedSiswaMasuk = s;
+        document.getElementById('searchMasuk').value = s.nama;
+        document.getElementById('avatar').textContent = s.nama.charAt(0);
+        document.getElementById('nameMasuk').textContent = s.nama;
+        document.getElementById('classMasuk').textContent = 'Kelas: ' + s.kelas;
+        document.getElementById('codeMasuk').textContent = s.kodeQR;
+        document.getElementById('masukInfo').classList.remove('hidden');
+        document.getElementById('emptyMasuk').classList.add('hidden');
+      } else if (dropdownId === 'dropPulang') {
+        selectedSiswaPulang = s;
+        document.getElementById('searchPulang').value = s.nama;
+        document.getElementById('avatarPulang').textContent = s.nama.charAt(0);
+        document.getElementById('namePulang').textContent = s.nama;
+        document.getElementById('classPulang').textContent = 'Kelas: ' + s.kelas;
+        document.getElementById('codePulang').textContent = s.kodeQR;
+        document.getElementById('pulangInfo').classList.remove('hidden');
+        document.getElementById('emptyPulang').classList.add('hidden');
+      }
+    }
+
+    // Tutup dropdown saat klik di luar
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('#swMasukWrap')) document.getElementById('dropMasuk').classList.remove('show');
+      if (!e.target.closest('#swPulangWrap')) document.getElementById('dropPulang').classList.remove('show');
+    });
+
+    // =============================================
+    // PROSES ABSENSI
+    // =============================================
+    function doAbsensi(tipe) {
+      var s = tipe === 'masuk' ? selectedSiswaMasuk : selectedSiswaPulang;
+      if (!s) { showToast('Pilih siswa terlebih dahulu', 'error'); return; }
+
+      var btn = document.getElementById(tipe === 'masuk' ? 'btnMasuk' : 'btnPulang');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px"></div> Memproses...';
+
+      apiPost('recordAttendance', { data: { kodeQR: s.kodeQR, tipe: tipe } }).then(function(r) {
+        playSuccessBeep();
+        showToast(r.message || 'Absensi berhasil', 'success');
+        if (tipe === 'masuk') {
+          selectedSiswaMasuk = null;
+          document.getElementById('searchMasuk').value = '';
+          document.getElementById('masukInfo').classList.add('hidden');
+          document.getElementById('emptyMasuk').classList.remove('hidden');
+        } else {
+          selectedSiswaPulang = null;
+          document.getElementById('searchPulang').value = '';
+          document.getElementById('pulangInfo').classList.add('hidden');
+          document.getElementById('emptyPulang').classList.remove('hidden');
+        }
+      }).catch(function(e) {
+        playErrorBeep();
+        showToast('Gagal: ' + e.message, 'error');
+      }).finally(function() {
+        btn.disabled = false;
+        btn.innerHTML = tipe === 'masuk' ? '<i class="fas fa-sign-in-alt"></i> Absen Masuk' : '<i class="fas fa-sign-out-alt"></i> Absen Pulang';
+      });
+    }
+
+    // =============================================
+    // TIDAK HADIR (SAKIT / IZIN / ALPA)
+    // =============================================
+    function loadSiswaByKelas() {
+      var kelas = document.getElementById('tidakKelas').value;
+      var sel = document.getElementById('tidakSiswa');
+      sel.innerHTML = '<option value="">-- Pilih Siswa --</option>';
+      if (!kelas) return;
+
+      var filtered = allSiswa.filter(function(s) { return s.kelas === kelas; });
+      if (filtered.length === 0) {
+        showToast('Tidak ada siswa di kelas ini (cache kosong, muat Data Siswa dulu)', 'info');
+        return;
+      }
+      sel.innerHTML = '<option value="">-- Pilih Siswa --</option>' + filtered.map(function(s) {
+        return '<option value="' + escapeHtml(s.kodeQR) + '">' + escapeHtml(s.nama) + ' (' + escapeHtml(s.kodeQR) + ')</option>';
+      }).join('');
+    }
+
+    function doTidakHadir() {
+      var kode = document.getElementById('tidakSiswa').value;
+      var keterangan = document.getElementById('tidakKeterangan').value;
+      if (!kode) { showToast('Pilih siswa terlebih dahulu', 'error'); return; }
+      if (!keterangan) { showToast('Pilih keterangan', 'error'); return; }
+
+      var btn = document.getElementById('btnTidak');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px"></div> Memproses...';
+
+      apiPost('recordAttendance', { data: { kodeQR: kode, tipe: keterangan } }).then(function(r) {
+        playSuccessBeep();
+        showToast(r.message || 'Ketidakhadiran direkam', 'success');
+        document.getElementById('tidakSiswa').value = '';
+        document.getElementById('tidakKeterangan').value = '';
+      }).catch(function(e) {
+        playErrorBeep();
+        showToast('Gagal: ' + e.message, 'error');
+      }).finally(function() {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-user-xmark"></i> Rekam Ketidakhadiran';
+      });
+    }
+
+    // =============================================
+    // KONFIGURASI
+    // =============================================
+    function loadKonfigurasi() {
+      apiGet('getConfig').then(function(c) {
+        if (c) {
+          document.getElementById('configJamMasuk').value = c.jamMasuk || '07:00';
+          document.getElementById('configJamPulang').value = c.jamPulang || '13:00';
+        }
+      }).catch(function() { /* gagal load config, biarkan default */ });
+    }
+
+    function saveConfig() {
+      var jm = document.getElementById('configJamMasuk').value;
+      var jp = document.getElementById('configJamPulang').value;
+      if (!jm || !jp) { showToast('Jam masuk dan pulang wajib diisi', 'error'); return; }
+
+      apiPost('saveConfig', { data: { jamMasuk: jm, jamPulang: jp } }).then(function() {
+        showToast('Konfigurasi default disimpan', 'success');
+      }).catch(function(e) { showToast('Gagal: ' + e.message, 'error'); });
+    }
+
+    // =============================================
+    // JADWAL PER KELAS
+    // =============================================
+    var jadwalData = [];
+    var editingJadwalIndex = -1;
+
+    function loadJadwal() {
+      apiGet('getJadwal').then(function(d) {
+        jadwalData = d || [];
+        renderJadwalTable();
+      }).catch(function(e) { showToast('Gagal memuat jadwal: ' + e.message, 'error'); });
+    }
+
+    function renderJadwalTable() {
+      var tb = document.getElementById('jadwalTableBody');
+      if (!jadwalData || jadwalData.length === 0) {
+        tb.innerHTML = '<tr><td colspan="5"><div class="empty-state py-6"><i class="fas fa-calendar-alt block"></i><p class="text-sm">Belum ada jadwal kelas</p></div></td></tr>';
+        return;
+      }
+      tb.innerHTML = jadwalData.map(function(j, i) {
+        return '<tr><td class="text-[var(--muted)]">' + (i+1) + '</td><td class="font-medium">' + escapeHtml(j.kelas) + '</td><td>' + escapeHtml(j.jamMasuk) + '</td><td>' + escapeHtml(j.jamPulang) + '</td><td><div class="flex gap-1"><button class="btn btn-secondary py-1 px-2 text-xs" onclick="editJadwal(' + i + ')"><i class="fas fa-edit"></i></button><button class="btn btn-danger py-1 px-2 text-xs" onclick="deleteJadwal(' + i + ')"><i class="fas fa-trash"></i></button></div></td></tr>';
+      }).join('');
+    }
+
+    function openModalJadwal(idx) {
+      editingJadwalIndex = (idx !== undefined && idx !== null) ? idx : -1;
+      if (editingJadwalIndex >= 0 && jadwalData[editingJadwalIndex]) {
+        document.getElementById('modalJadwalTitle').textContent = 'Edit Jadwal Kelas';
+        document.getElementById('inputJadwalKelas').value = jadwalData[editingJadwalIndex].kelas;
+        document.getElementById('inputJadwalMasuk').value = jadwalData[editingJadwalIndex].jamMasuk;
+        document.getElementById('inputJadwalPulang').value = jadwalData[editingJadwalIndex].jamPulang;
+      } else {
+        document.getElementById('modalJadwalTitle').textContent = 'Tambah Jadwal Kelas';
+        document.getElementById('inputJadwalKelas').value = '';
+        document.getElementById('inputJadwalMasuk').value = '';
+        document.getElementById('inputJadwalPulang').value = '';
+      }
+      openModal('modalJadwal');
+    }
+
+    function editJadwal(idx) { openModalJadwal(idx); }
+
+    function submitJadwal() {
+      var kls = document.getElementById('inputJadwalKelas').value.trim();
+      var jm = document.getElementById('inputJadwalMasuk').value;
+      var jp = document.getElementById('inputJadwalPulang').value;
+      if (!kls || !jm || !jp) { showToast('Semua field wajib diisi', 'error'); return; }
+
+      var btn = document.getElementById('btnSubmitJadwal');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px"></div> Menyimpan...';
+
+      var payload = { data: { kelas: kls, jamMasuk: jm, jamPulang: jp } };
+      if (editingJadwalIndex >= 0) payload.rowIndex = editingJadwalIndex;
+
+      apiPost(editingJadwalIndex >= 0 ? 'updateJadwal' : 'addJadwal', payload).then(function() {
+        showToast('Jadwal disimpan', 'success');
+        closeModal('modalJadwal');
+        loadJadwal();
+      }).catch(function(e) { showToast('Gagal: ' + e.message, 'error'); }).finally(function() {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save"></i> Simpan';
+      });
+    }
+
+    function deleteJadwal(idx) {
+      var j = jadwalData[idx];
+      document.getElementById('konfirmasiTitle').textContent = 'Hapus Jadwal?';
+      document.getElementById('konfirmasiMessage').textContent = 'Jadwal kelas "' + j.kelas + '" akan dihapus.';
+      document.getElementById('btnKonfirmasiYa').onclick = function() {
+        apiPost('deleteJadwal', { rowIndex: idx }).then(function() {
+          showToast('Jadwal dihapus', 'success');
+          closeModal('modalKonfirmasi');
+          loadJadwal();
+        }).catch(function(e) { showToast('Gagal: ' + e.message, 'error'); });
+      };
+      openModal('modalKonfirmasi');
+    }
+
+    // =============================================
+    // LAPORAN
+    // =============================================
+    function loadKelasDropdown() {
+      apiGet('getKelasList').then(function(list) {
+        var sel = document.getElementById('laporanKelas');
+        var sel2 = document.getElementById('tidakKelas');
+        var currentVal = sel.value;
+        sel.innerHTML = '<option value="Semua">Semua Kelas</option>';
+        sel2.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        if (list && list.length > 0) {
+          list.forEach(function(k) {
+            sel.innerHTML += '<option value="' + escapeHtml(k) + '">' + escapeHtml(k) + '</option>';
+            sel2.innerHTML += '<option value="' + escapeHtml(k) + '">' + escapeHtml(k) + '</option>';
+          });
+        }
+        sel.value = currentVal;
+      }).catch(function() { /* silent */ });
+    }
+
+    function loadLaporan() {
+      var tgl = document.getElementById('laporanTanggal').value;
+      var kls = document.getElementById('laporanKelas').value;
+      if (!tgl) {
+        var today = new Date();
+        tgl = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+        document.getElementById('laporanTanggal').value = tgl;
+      }
+
+      var params = { tanggal: tgl };
+      if (kls && kls !== 'Semua') params.kelas = kls;
+
+      apiGet('getLaporan', params).then(function(d) {
+        var tb = document.getElementById('tbodyLaporan');
+        if (!d || d.length === 0) {
+          tb.innerHTML = '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-file-alt block"></i><p class="text-sm">Tidak ada data untuk filter ini</p></div></td></tr>';
+          document.getElementById('laporanSummary').classList.add('hidden');
+          return;
+        }
+
+        tb.innerHTML = d.map(function(r, i) {
+          var bc = r.status === 'Hadir' ? 'badge-hadir' : r.status === 'Terlambat' ? 'badge-terlambat' : r.status === 'Pulang' ? 'badge-pulang' : (r.status === 'Sakit' ? 'badge-sakit' : (r.status === 'Izin' ? 'badge-izin' : 'badge-alpa'));
+          return '<tr><td class="text-[var(--muted)]">' + (i+1) + '</td><td class="font-medium">' + escapeHtml(r.nama) + '</td><td>' + escapeHtml(r.kelas) + '</td><td class="text-sm">' + formatTanggal(r.tanggal) + '</td><td>' + escapeHtml(r.jamMasuk || '-') + '</td><td>' + escapeHtml(r.jamPulang || '-') + '</td><td><span class="badge ' + bc + '">' + escapeHtml(r.status) + '</span></td></tr>';
+        }).join('');
+
+        // Ringkasan
+        var hadir = d.filter(function(r) { return r.status === 'Hadir'; }).length;
+        var terlambat = d.filter(function(r) { return r.status === 'Terlambat'; }).length;
+        var sakit = d.filter(function(r) { return r.status === 'Sakit'; }).length;
+        var izin = d.filter(function(r) { return r.status === 'Izin'; }).length;
+        var alpa = d.filter(function(r) { return r.status === 'Alpa'; }).length;
+        var sum = document.getElementById('laporanSummary');
+        sum.classList.remove('hidden');
+        sum.innerHTML = 'Total: ' + d.length + ' siswa &mdash; <span class="text-[#34D399]">Hadir: ' + hadir + '</span> &mdash; <span class="text-[#FBBF24]">Terlambat: ' + terlambat + '</span> &mdash; <span class="text-[#FCA5A5]">Sakit: ' + sakit + '</span> &mdash; <span class="text-[#FBBF24]">Izin: ' + izin + '</span> &mdash; <span class="text-[#94A3B8]">Alpa: ' + alpa + '</span>';
+      }).catch(function(e) { showToast('Gagal memuat laporan: ' + e.message, 'error'); });
+    }
+
+    function exportExcel() {
+      var tgl = document.getElementById('laporanTanggal').value;
+      var kls = document.getElementById('laporanKelas').value;
+      if (!tgl) { showToast('Pilih tanggal terlebih dahulu', 'error'); return; }
+
+      showToast('Mengunduh laporan...', 'info');
+
+      var params = { tanggal: tgl };
+      if (kls && kls !== 'Semua') params.kelas = kls;
+
+      apiGet('getLaporan', params).then(function(d) {
+        if (!d || d.length === 0) { showToast('Tidak ada data untuk diekspor', 'error'); return; }
+
+        var rows = [['No', 'Nama Siswa', 'Kelas', 'Tanggal', 'Jam Masuk', 'Jam Pulang', 'Status']];
+        d.forEach(function(r, i) {
+          rows.push([i + 1, r.nama, r.kelas, r.tanggal, r.jamMasuk || '-', r.jamPulang || '-', r.status]);
+        });
+
+        var ws = XLSX.utils.aoa_to_sheet(rows);
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Laporan Absensi');
+        XLSX.writeFile(wb, 'Laporan_Absensi_' + tgl + '.xlsx');
+        showToast('File Excel berhasil diunduh', 'success');
+      }).catch(function(e) { showToast('Gagal: ' + e.message, 'error'); });
+    }
+
+    // =============================================
+    // INISIALISASI
+    // =============================================
+    checkApiConnection();
+    loadDashboard();
+  </script>
+</body>
+</html>
