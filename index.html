@@ -54,14 +54,11 @@
     #qr-reader{border-radius:.75rem;overflow:hidden;border:2px solid var(--border)}
     #qr-reader video{border-radius:.5rem}
     .scan-flash{animation:scanFlash .4s ease-out}@keyframes scanFlash{0%{box-shadow:0 0 0 0 rgba(16,185,129,0.6)}100%{box-shadow:0 0 0 20px rgba(16,185,129,0)}}
-    .scan-flash-error{animation:scanFlashError .4s ease-out}@keyframes scanFlashError{0%{box-shadow:0 0 0 0 rgba(239,68,68,0.6)}100%{box-shadow:0 0 0 20px rgba(239,68,68,0)}}
     .tab-btn{padding:.6rem 1.5rem;border-radius:.5rem .5rem 0 0;border:1px solid transparent;border-bottom:none;background:transparent;color:var(--muted);transition:all .2s;font-family:'DM Sans',sans-serif}
     .tab-btn.active{background:var(--card);color:var(--accent);border-color:var(--border)}.tab-btn:hover:not(.active){color:var(--text)}
     .tab-content{display:none}.tab-content.active{display:block;animation:pageIn .2s ease-out}
     ::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--muted)}
     .empty-state{text-align:center;padding:3rem 1rem;color:var(--muted)}.empty-state i{font-size:3rem;margin-bottom:1rem;opacity:.3}
-    .search-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:.5rem;margin-top:.25rem;max-height:240px;overflow-y:auto;z-index:20;display:none}.search-dropdown.show{display:block}
-    .search-dropdown-item{padding:.6rem 1rem;cursor:pointer;font-size:.875rem;transition:background .15s;border-bottom:1px solid rgba(51,65,85,0.3)}.search-dropdown-item:last-child{border-bottom:none}.search-dropdown-item:hover{background:var(--accent-glow)}
     .spinner{width:1.25rem;height:1.25rem;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
     .count-up{transition:all .5s ease-out}
     @media(max-width:1023px){.sidebar{transform:translateX(-100%);transition:transform .3s ease;z-index:50}.sidebar.open{transform:translateX(0)}}
@@ -71,6 +68,8 @@
     .api-status.connected{background:var(--accent);box-shadow:0 0 6px var(--accent)}.api-status.disconnected{background:var(--danger);box-shadow:0 0 6px var(--danger)}.api-status.checking{background:var(--warning);animation:pulse 1s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
     .school-badge{background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(6,182,212,0.05));border:1px solid rgba(16,185,129,0.2);border-radius:.5rem;padding:.6rem .8rem}
     .cooldown-bar{height:3px;background:var(--accent);border-radius:2px;transition:width 0.1s linear}
+    .divider-text{display:flex;align-items:center;gap:.75rem;color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+    .divider-text::before,.divider-text::after{content:'';flex:1;height:1px;background:var(--border)}
   </style>
 </head>
 <body>
@@ -147,7 +146,6 @@
           <div class="max-w-lg mx-auto py-4">
             <div id="qr-reader" style="width:100%"></div>
             <div id="scanResult" class="mt-4 hidden"><div id="scanResultContent" class="rounded-lg p-4 border text-center"></div></div>
-            <!-- Bar cooldown anti-scan berulang -->
             <div id="cooldownWrap" class="mt-2 hidden">
               <div class="flex items-center justify-between text-xs text-[var(--muted)] mb-1">
                 <span>Menunggu scan berikutnya...</span>
@@ -170,11 +168,20 @@
           <!-- Tab Masuk -->
           <div id="tab-masuk" class="tab-content active">
             <div class="max-w-lg mx-auto py-4">
-              <label class="label">Cari Siswa</label>
-              <div class="relative" id="swMasukWrap">
-                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)] text-sm"></i>
-                <input type="text" id="searchMasuk" class="input pl-9" placeholder="Ketik nama atau kode QR..." oninput="handleAbsenSearch('searchMasuk','dropMasuk')" onfocus="handleAbsenSearch('searchMasuk','dropMasuk')">
-                <div id="dropMasuk" class="search-dropdown"></div>
+              <div class="divider-text mb-4">Pilih Manual</div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="label">Pilih Kelas</label>
+                  <select id="masukKelas" class="input" onchange="onAbsenKelasChange('masuk')">
+                    <option value="">-- Pilih Kelas --</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="label">Nama Siswa</label>
+                  <select id="masukSiswaSelect" class="input" onchange="onAbsenSiswaChange('masuk')">
+                    <option value="">-- Pilih Siswa --</option>
+                  </select>
+                </div>
               </div>
               <div id="masukInfo" class="mt-4 hidden">
                 <div class="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
@@ -191,18 +198,27 @@
                   </div>
                 </div>
               </div>
-              <div id="emptyMasuk" class="text-center py-10 text-[var(--muted)]"><i class="fas fa-user-check text-4xl opacity-20 block mb-3"></i><p class="text-sm">Cari siswa untuk memulai absensi</p></div>
+              <div id="emptyMasuk" class="text-center py-6 text-[var(--muted)]"><p class="text-sm">Pilih kelas lalu siswa untuk memulai absensi</p></div>
             </div>
           </div>
 
           <!-- Tab Pulang -->
           <div id="tab-pulang" class="tab-content">
             <div class="max-w-lg mx-auto py-4">
-              <label class="label">Cari Siswa</label>
-              <div class="relative" id="swPulangWrap">
-                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)] text-sm"></i>
-                <input type="text" id="searchPulang" class="input pl-9" placeholder="Ketik nama atau kode QR..." oninput="handleAbsenSearch('searchPulang','dropPulang')" onfocus="handleAbsenSearch('searchPulang','dropPulang')">
-                <div id="dropPulang" class="search-dropdown"></div>
+              <div class="divider-text mb-4">Pilih Manual</div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="label">Pilih Kelas</label>
+                  <select id="pulangKelas" class="input" onchange="onAbsenKelasChange('pulang')">
+                    <option value="">-- Pilih Kelas --</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="label">Nama Siswa</label>
+                  <select id="pulangSiswaSelect" class="input" onchange="onAbsenSiswaChange('pulang')">
+                    <option value="">-- Pilih Siswa --</option>
+                  </select>
+                </div>
               </div>
               <div id="pulangInfo" class="mt-4 hidden">
                 <div class="bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)]">
@@ -219,7 +235,7 @@
                   </div>
                 </div>
               </div>
-              <div id="emptyPulang" class="text-center py-10 text-[var(--muted)]"><i class="fas fa-user-check text-4xl opacity-20 block mb-3"></i><p class="text-sm">Cari siswa untuk memulai absensi</p></div>
+              <div id="emptyPulang" class="text-center py-6 text-[var(--muted)]"><p class="text-sm">Pilih kelas lalu siswa untuk memulai absensi</p></div>
             </div>
           </div>
 
@@ -228,7 +244,7 @@
             <div class="max-w-lg mx-auto py-4 space-y-4">
               <div>
                 <label class="label">Pilih Kelas</label>
-                <select id="tidakKelas" class="input" style="max-width:300px" onchange="loadSiswaByKelas()">
+                <select id="tidakKelas" class="input" style="max-width:100%" onchange="loadSiswaByKelas('tidak')">
                   <option value="">-- Pilih Kelas --</option>
                 </select>
               </div>
@@ -248,7 +264,6 @@
                 </select>
               </div>
               <button id="btnTidak" class="btn btn-danger w-full" onclick="doTidakHadir()"><i class="fas fa-user-xmark"></i> Rekam Ketidakhadiran</button>
-              <div id="emptyTidak" class="text-center py-10 text-[var(--muted)]"><i class="fas fa-user-xmark text-4xl opacity-20 block mb-3"></i><p class="text-sm">Pilih kelas, siswa, dan keterangan untuk merekam ketidakhadiran</p></div>
             </div>
           </div>
         </div>
@@ -273,7 +288,7 @@
             </div>
             <div class="overflow-x-auto"><table class="data-table"><thead><tr><th style="width:50px">No</th><th>Kelas</th><th>Jam Masuk</th><th>Jam Pulang</th><th style="width:120px">Aksi</th></tr></thead><tbody id="jadwalTableBody"><tr><td colspan="5"><div class="empty-state py-6"><i class="fas fa-calendar-alt block"></i><p class="text-sm">Belum ada jadwal kelas</p></div></td></tr></tbody></table></div>
           </div>
-          <div class="card"><h3 class="font-display font-semibold text-base mb-1">Informasi Sistem</h3><div class="mt-3 p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-sm space-y-1"><div class="flex justify-between"><span class="text-[var(--muted)]">Versi</span><span>1.7.0</span></div><div class="flex justify-between"><span class="text-[var(--muted)]">Format Kode QR</span><span>Kelas-00xx</span></div><div class="flex justify-between"><span class="text-[var(--muted)]">Backend</span><span>Google Apps Script</span></div><div class="flex justify-between"><span class="text-[var(--muted)]">Frontend</span><span>GitHub Pages</span></div></div></div>
+          <div class="card"><h3 class="font-display font-semibold text-base mb-1">Informasi Sistem</h3><div class="mt-3 p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-sm space-y-1"><div class="flex justify-between"><span class="text-[var(--muted)]">Versi</span><span>1.8.0</span></div><div class="flex justify-between"><span class="text-[var(--muted)]">Format Kode QR</span><span>Kelas-00xx</span></div><div class="flex justify-between"><span class="text-[var(--muted)]">Backend</span><span>Google Apps Script</span></div><div class="flex justify-between"><span class="text-[var(--muted)]">Frontend</span><span>GitHub Pages</span></div></div></div>
         </div>
       </section>
 
@@ -439,12 +454,39 @@
     function loadPageData(page) {
       if (page === 'dashboard') loadDashboard();
       else if (page === 'siswa') loadSiswa();
-      else if (page === 'absensi') { switchAbsenTab(currentAbsenTab); }
+      else if (page === 'absensi') { ensureSiswaLoaded().then(function() { populateAllKelasDropdowns(); switchAbsenTab(currentAbsenTab); }); }
       else if (page === 'konfigurasi') { loadKonfigurasi(); loadJadwal(); }
       else if (page === 'laporan') { loadKelasDropdown(); loadLaporan(); }
     }
 
     function refreshCurrentPage() { loadPageData(currentPage); showToast('Data berhasil di-refresh', 'success'); }
+
+    // =============================================
+    // PASTIKAN DATA SISWA SUDAH DIMUAT
+    // =============================================
+    var siswaLoadPromise = null;
+
+    function ensureSiswaLoaded() {
+      if (siswaLoadPromise) return siswaLoadPromise;
+      if (allSiswa.length > 0) {
+        siswaLoadPromise = Promise.resolve(allSiswa);
+        return siswaLoadPromise;
+      }
+      siswaLoadPromise = apiGet('getSiswa').then(function(d) {
+        allSiswa = d;
+        return d;
+      }).catch(function(e) {
+        showToast('Gagal memuat data siswa: ' + e.message, 'error');
+        return [];
+      });
+      return siswaLoadPromise;
+    }
+
+    // Reset promise supaya saat refresh selalu ambil data terbaru
+    function invalidateSiswaCache() {
+      siswaLoadPromise = null;
+      allSiswa = [];
+    }
 
     // =============================================
     // DASHBOARD
@@ -497,12 +539,13 @@
     }
 
     // =============================================
-    // DATA SISWA (tanpa tombol Tambah)
+    // DATA SISWA
     // =============================================
     var allSiswa = [];
 
     function loadSiswa() {
-      apiGet('getSiswa').then(function(d) { allSiswa = d; renderSiswaTable(allSiswa); }).catch(function(e) { showToast('Gagal memuat: ' + e.message, 'error'); });
+      invalidateSiswaCache();
+      apiGet('getSiswa').then(function(d) { allSiswa = d; siswaLoadPromise = Promise.resolve(d); renderSiswaTable(allSiswa); }).catch(function(e) { showToast('Gagal memuat: ' + e.message, 'error'); });
     }
 
     function renderSiswaTable(data) {
@@ -535,20 +578,11 @@
           }).filter(function(r) { return r.nama !== ''; });
           if (imp.length === 0) { showToast('Tidak ada data valid', 'error'); return; }
           showToast('Mengimpor ' + imp.length + ' data...', 'info');
-          apiPost('importSiswa', { data: imp }).then(function(r) { showToast('Berhasil mengimpor ' + r.count + ' siswa', 'success'); loadSiswa(); }).catch(function(e) { showToast('Gagal: ' + e.message, 'error'); });
+          apiPost('importSiswa', { data: imp }).then(function(r) { showToast('Berhasil mengimpor ' + r.count + ' siswa', 'success'); invalidateSiswaCache(); loadSiswa(); }).catch(function(e) { showToast('Gagal: ' + e.message, 'error'); });
         } catch(err) { showToast('Gagal baca file: ' + err.message, 'error'); }
       };
       reader.readAsArrayBuffer(file);
       event.target.value = '';
-    }
-
-    function confirmDelete(ri, nm) {
-      document.getElementById('konfirmasiTitle').textContent = 'Hapus Siswa?';
-      document.getElementById('konfirmasiMessage').textContent = 'Data "' + nm + '" akan dihapus permanen.';
-      document.getElementById('btnKonfirmasiYa').onclick = function() {
-        apiPost('deleteSiswa', { rowIndex: ri }).then(function() { showToast('Berhasil dihapus', 'success'); closeModal('modalKonfirmasi'); loadSiswa(); }).catch(function(e) { showToast('Gagal: ' + e.message, 'error'); });
-      };
-      openModal('modalKonfirmasi');
     }
 
     var currentQRInstance = null;
@@ -569,7 +603,43 @@
     }
 
     // =============================================
-    // ABSENSI - 3 TAB
+    // DROPDOWN KELAS (digunakan di Absensi & Laporan)
+    // =============================================
+    function getClassesFromCache() {
+      // Prioritas: cachedClasses dari dashboard, fallback dari allSiswa
+      if (cachedClasses && cachedClasses.length > 0) return cachedClasses.slice();
+      if (allSiswa && allSiswa.length > 0) {
+        var map = {}, arr = [];
+        allSiswa.forEach(function(s) { if (s.kelas && !map[s.kelas]) { map[s.kelas] = true; arr.push(s.kelas); } });
+        arr.sort();
+        return arr;
+      }
+      return [];
+    }
+
+    function fillKelasSelect(selectEl, withSemua) {
+      var classes = getClassesFromCache();
+      var current = selectEl.value;
+      selectEl.innerHTML = withSemua ? '<option value="Semua">Semua Kelas</option>' : '<option value="">-- Pilih Kelas --</option>';
+      classes.forEach(function(k) {
+        selectEl.innerHTML += '<option value="' + escapeHtml(k) + '">' + escapeHtml(k) + '</option>';
+      });
+      selectEl.value = current;
+    }
+
+    // Isi semua dropdown kelas di halaman absensi
+    function populateAllKelasDropdowns() {
+      fillKelasSelect(document.getElementById('masukKelas'), false);
+      fillKelasSelect(document.getElementById('pulangKelas'), false);
+      fillKelasSelect(document.getElementById('tidakKelas'), false);
+    }
+
+    function loadKelasDropdown() {
+      fillKelasSelect(document.getElementById('laporanKelas'), true);
+    }
+
+    // =============================================
+    // ABSENSI - TAB SWITCHING
     // =============================================
     var currentAbsenTab = 'masuk';
     var scannerRunning = false;
@@ -578,15 +648,13 @@
     var selectedSiswaPulang = null;
 
     // --- ANTI SCAN BERULANG ---
-    var SCAN_COOLDOWN_MS = 5000; // 5 detik cooldown
+    var SCAN_COOLDOWN_MS = 5000;
     var lastScannedCode = '';
     var lastScanTime = 0;
     var cooldownTimer = null;
     var cooldownAnimFrame = null;
 
-    function isCooldownActive() {
-      return (Date.now() - lastScanTime) < SCAN_COOLDOWN_MS;
-    }
+    function isCooldownActive() { return (Date.now() - lastScanTime) < SCAN_COOLDOWN_MS; }
 
     function startCooldown() {
       lastScanTime = Date.now();
@@ -595,31 +663,19 @@
       var txt = document.getElementById('cooldownText');
       wrap.classList.remove('hidden');
       bar.style.width = '100%';
-
       var start = Date.now();
       if (cooldownAnimFrame) cancelAnimationFrame(cooldownAnimFrame);
       if (cooldownTimer) clearTimeout(cooldownTimer);
-
       function tick() {
         var elapsed = Date.now() - start;
         var remaining = SCAN_COOLDOWN_MS - elapsed;
-        if (remaining <= 0) {
-          wrap.classList.add('hidden');
-          bar.style.width = '0%';
-          return;
-        }
-        var pct = (remaining / SCAN_COOLDOWN_MS) * 100;
-        bar.style.width = pct + '%';
+        if (remaining <= 0) { wrap.classList.add('hidden'); bar.style.width = '0%'; return; }
+        bar.style.width = (remaining / SCAN_COOLDOWN_MS * 100) + '%';
         txt.textContent = Math.ceil(remaining / 1000) + 's';
         cooldownAnimFrame = requestAnimationFrame(tick);
       }
       tick();
-
-      cooldownTimer = setTimeout(function() {
-        wrap.classList.add('hidden');
-        bar.style.width = '0%';
-        lastScannedCode = '';
-      }, SCAN_COOLDOWN_MS);
+      cooldownTimer = setTimeout(function() { wrap.classList.add('hidden'); bar.style.width = '0%'; lastScannedCode = ''; }, SCAN_COOLDOWN_MS);
     }
 
     // --- KAMERA DEPAN/BELAKANG ---
@@ -627,12 +683,7 @@
 
     function switchCamera() {
       useFrontCamera = !useFrontCamera;
-      var wasRunning = scannerRunning;
-      if (wasRunning) {
-        stopScanner().then(function() {
-          startScanner();
-        });
-      }
+      if (scannerRunning) { stopScanner().then(function() { startScanner(); }); }
       showToast(useFrontCamera ? 'Kamera depan aktif' : 'Kamera belakang aktif', 'info');
     }
 
@@ -640,7 +691,6 @@
       currentAbsenTab = tab;
       document.querySelectorAll('.tab-btn').forEach(function(el) { el.classList.toggle('active', el.getAttribute('data-tab') === tab); });
       document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.toggle('active', el.id === 'tab-' + tab); });
-
       var scanContainer = document.getElementById('scanContainer');
       if (tab === 'tidak') {
         scanContainer.style.display = 'none';
@@ -660,28 +710,23 @@
       return html5QrCode.start(
         { facingMode: facingMode },
         { fps: 10, qrbox: { width: 250, height: 250 } },
-        onScanSuccess,
-        function() {}
+        onScanSuccess, function() {}
       ).then(function() {
         scannerRunning = true;
         document.getElementById('btnToggleScan').innerHTML = '<i class="fas fa-stop"></i> Stop Scanner';
       }).catch(function(e) {
-        // Jika kamera depan gagal, fallback ke belakang
         if (useFrontCamera) {
           useFrontCamera = false;
           html5QrCode = new Html5Qrcode("qr-reader");
           return html5QrCode.start(
             { facingMode: "environment" },
             { fps: 10, qrbox: { width: 250, height: 250 } },
-            onScanSuccess,
-            function() {}
+            onScanSuccess, function() {}
           ).then(function() {
             scannerRunning = true;
             document.getElementById('btnToggleScan').innerHTML = '<i class="fas fa-stop"></i> Stop Scanner';
             showToast('Kamera depan tidak tersedia, menggunakan kamera belakang', 'info');
-          }).catch(function(e2) {
-            showToast('Gagal memulai scanner: ' + e2.message, 'error');
-          });
+          }).catch(function(e2) { showToast('Gagal memulai scanner: ' + e2.message, 'error'); });
         }
         showToast('Gagal memulai scanner: ' + e.message, 'error');
       });
@@ -698,23 +743,11 @@
       });
     }
 
-    function toggleScanner() {
-      if (scannerRunning) stopScanner();
-      else startScanner();
-    }
+    function toggleScanner() { if (scannerRunning) stopScanner(); else startScanner(); }
 
-    // --- HANDLER SCAN DENGAN COOLDOWN ---
     function onScanSuccess(decodedText) {
       var code = decodedText.trim();
-
-      // Blokir jika kode sama dan masih dalam cooldown
-      if (code === lastScannedCode && isCooldownActive()) {
-        return; // Senyap, abaikan scan berulang
-      }
-
-      // Jika kode beda tapi masih cooldown, proses saja (satu siswa scan lalu langsung siswa lain)
-      // Tapi jika kode sama, wajib tunggu cooldown selesai
-
+      if (code === lastScannedCode && isCooldownActive()) return;
       lastScannedCode = code;
       playSuccessBeep();
       var reader = document.getElementById('qr-reader');
@@ -729,44 +762,23 @@
       for (var i = 0; i < allSiswa.length; i++) {
         if (allSiswa[i].kodeQR === kode) { found = allSiswa[i]; break; }
       }
-
-      if (found) {
-        handleScannedSiswa(found);
-      } else {
+      if (found) { handleScannedSiswa(found); }
+      else {
         apiGet('cariSiswa', { keyword: kode }).then(function(results) {
-          if (!results || results.length === 0) {
-            playErrorBeep();
-            showScanResult(false, 'Kode QR "' + kode + '" tidak ditemukan');
-            return;
-          }
+          if (!results || results.length === 0) { playErrorBeep(); showScanResult(false, 'Kode QR "' + kode + '" tidak ditemukan'); return; }
           handleScannedSiswa(results[0]);
-        }).catch(function(e) {
-          playErrorBeep();
-          showScanResult(false, e.message);
-        });
+        }).catch(function(e) { playErrorBeep(); showScanResult(false, e.message); });
       }
     }
 
     function handleScannedSiswa(s) {
       if (currentAbsenTab === 'masuk') {
         selectedSiswaMasuk = s;
-        document.getElementById('searchMasuk').value = s.nama;
-        document.getElementById('avatar').textContent = s.nama.charAt(0);
-        document.getElementById('nameMasuk').textContent = s.nama;
-        document.getElementById('classMasuk').textContent = 'Kelas: ' + s.kelas;
-        document.getElementById('codeMasuk').textContent = s.kodeQR;
-        document.getElementById('masukInfo').classList.remove('hidden');
-        document.getElementById('emptyMasuk').classList.add('hidden');
+        fillAbsenInfoCard('masuk', s);
         doAbsensi('masuk');
       } else if (currentAbsenTab === 'pulang') {
         selectedSiswaPulang = s;
-        document.getElementById('searchPulang').value = s.nama;
-        document.getElementById('avatarPulang').textContent = s.nama.charAt(0);
-        document.getElementById('namePulang').textContent = s.nama;
-        document.getElementById('classPulang').textContent = 'Kelas: ' + s.kelas;
-        document.getElementById('codePulang').textContent = s.kodeQR;
-        document.getElementById('pulangInfo').classList.remove('hidden');
-        document.getElementById('emptyPulang').classList.add('hidden');
+        fillAbsenInfoCard('pulang', s);
         doAbsensi('pulang');
       }
       showScanResult(true, s.nama + ' — ' + s.kelas);
@@ -787,55 +799,93 @@
     }
 
     // =============================================
-    // SEARCH DROPDOWN ABSENSI
+    // DROPDOWN KELAS >> SISWA DI TAB MASUK/PULANG
     // =============================================
-    function handleAbsenSearch(inputId, dropdownId) {
-      var q = document.getElementById(inputId).value.toLowerCase().trim();
-      var dd = document.getElementById(dropdownId);
-      if (q.length === 0) { dd.classList.remove('show'); return; }
+    function onAbsenKelasChange(tab) {
+      var kelasEl = document.getElementById(tab + 'Kelas');
+      var siswaEl = document.getElementById(tab + 'SiswaSelect');
+      var kelas = kelasEl.value;
 
-      var filtered = allSiswa.filter(function(s) {
-        return s.nama.toLowerCase().indexOf(q) !== -1 || s.kodeQR.toLowerCase().indexOf(q) !== -1;
-      });
+      // Reset info card
+      resetAbsenInfo(tab);
 
-      if (filtered.length === 0) { dd.classList.remove('show'); return; }
-
-      dd.innerHTML = filtered.slice(0, 10).map(function(s) {
-        return '<div class="search-dropdown-item" data-kode="' + escapeHtml(s.kodeQR) + '" onclick="selectAbsenSiswa(\'' + escapeHtml(s.kodeQR) + '\',\'' + dropdownId + '\')">' + escapeHtml(s.nama) + ' <span class="text-[var(--muted)] text-xs ml-1">(' + escapeHtml(s.kelas) + ')</span></div>';
-      }).join('');
-      dd.classList.add('show');
-    }
-
-    function selectAbsenSiswa(kode, dropdownId) {
-      document.getElementById(dropdownId).classList.remove('show');
-      var s = allSiswa.find(function(x) { return x.kodeQR === kode; });
-      if (!s) return;
-
-      if (dropdownId === 'dropMasuk') {
-        selectedSiswaMasuk = s;
-        document.getElementById('searchMasuk').value = s.nama;
-        document.getElementById('avatar').textContent = s.nama.charAt(0);
-        document.getElementById('nameMasuk').textContent = s.nama;
-        document.getElementById('classMasuk').textContent = 'Kelas: ' + s.kelas;
-        document.getElementById('codeMasuk').textContent = s.kodeQR;
-        document.getElementById('masukInfo').classList.remove('hidden');
-        document.getElementById('emptyMasuk').classList.add('hidden');
-      } else if (dropdownId === 'dropPulang') {
-        selectedSiswaPulang = s;
-        document.getElementById('searchPulang').value = s.nama;
-        document.getElementById('avatarPulang').textContent = s.nama.charAt(0);
-        document.getElementById('namePulang').textContent = s.nama;
-        document.getElementById('classPulang').textContent = 'Kelas: ' + s.kelas;
-        document.getElementById('codePulang').textContent = s.kodeQR;
-        document.getElementById('pulangInfo').classList.remove('hidden');
-        document.getElementById('emptyPulang').classList.add('hidden');
+      if (!kelas) {
+        siswaEl.innerHTML = '<option value="">-- Pilih Siswa --</option>';
+        return;
       }
+
+      var filtered = allSiswa.filter(function(s) { return s.kelas === kelas; });
+      filtered.sort(function(a, b) { return a.nama.localeCompare(b.nama); });
+
+      siswaEl.innerHTML = '<option value="">-- Pilih Siswa --</option>';
+      filtered.forEach(function(s) {
+        siswaEl.innerHTML += '<option value="' + escapeHtml(s.kodeQR) + '">' + escapeHtml(s.nama) + ' (' + escapeHtml(s.kodeQR) + ')</option>';
+      });
     }
 
-    document.addEventListener('click', function(e) {
-      if (!e.target.closest('#swMasukWrap')) document.getElementById('dropMasuk').classList.remove('show');
-      if (!e.target.closest('#swPulangWrap')) document.getElementById('dropPulang').classList.remove('show');
-    });
+    function onAbsenSiswaChange(tab) {
+      var siswaEl = document.getElementById(tab + 'SiswaSelect');
+      var kode = siswaEl.value;
+
+      if (!kode) { resetAbsenInfo(tab); return; }
+
+      var s = allSiswa.find(function(x) { return x.kodeQR === kode; });
+      if (!s) { resetAbsenInfo(tab); return; }
+
+      if (tab === 'masuk') selectedSiswaMasuk = s;
+      else selectedSiswaPulang = s;
+
+      fillAbsenInfoCard(tab, s);
+    }
+
+    function fillAbsenInfoCard(tab, s) {
+      var infoEl = document.getElementById(tab + 'Info');
+      var emptyEl = document.getElementById('empty' + tab.charAt(0).toUpperCase() + tab.slice(1));
+      var avatarEl = document.getElementById(tab === 'masuk' ? 'avatar' : 'avatarPulang');
+      var nameEl = document.getElementById('name' + tab.charAt(0).toUpperCase() + tab.slice(1));
+      var classEl = document.getElementById('class' + tab.charAt(0).toUpperCase() + tab.slice(1));
+      var codeEl = document.getElementById('code' + tab.charAt(0).toUpperCase() + tab.slice(1));
+
+      avatarEl.textContent = s.nama.charAt(0);
+      nameEl.textContent = s.nama;
+      classEl.textContent = 'Kelas: ' + s.kelas;
+      codeEl.textContent = s.kodeQR;
+      infoEl.classList.remove('hidden');
+      emptyEl.classList.add('hidden');
+    }
+
+    function resetAbsenInfo(tab) {
+      var infoEl = document.getElementById(tab + 'Info');
+      var emptyEl = document.getElementById('empty' + tab.charAt(0).toUpperCase() + tab.slice(1));
+      if (tab === 'masuk') selectedSiswaMasuk = null;
+      else selectedSiswaPulang = null;
+      if (infoEl) infoEl.classList.add('hidden');
+      if (emptyEl) emptyEl.classList.remove('hidden');
+    }
+
+    // =============================================
+    // DROPDOWN SISWA DI TAB TIDAK HADIR
+    // =============================================
+    function loadSiswaByKelas(tab) {
+      var kelasEl = document.getElementById(tab + 'Kelas');
+      var siswaEl = document.getElementById(tab + 'Siswa');
+      var kelas = kelasEl.value;
+
+      siswaEl.innerHTML = '<option value="">-- Pilih Siswa --</option>';
+      if (!kelas) return;
+
+      var filtered = allSiswa.filter(function(s) { return s.kelas === kelas; });
+      filtered.sort(function(a, b) { return a.nama.localeCompare(b.nama); });
+
+      if (filtered.length === 0) {
+        showToast('Tidak ada siswa di kelas ini', 'info');
+        return;
+      }
+
+      filtered.forEach(function(s) {
+        siswaEl.innerHTML += '<option value="' + escapeHtml(s.kodeQR) + '">' + escapeHtml(s.nama) + ' (' + escapeHtml(s.kodeQR) + ')</option>';
+      });
+    }
 
     // =============================================
     // PROSES ABSENSI MASUK / PULANG
@@ -851,17 +901,10 @@
       apiPost('prosesAbsensi', { kode: s.kodeQR, tipe: tipe }).then(function(r) {
         playSuccessBeep();
         showToast(r.message || 'Absensi berhasil', 'success');
-        if (tipe === 'masuk') {
-          selectedSiswaMasuk = null;
-          document.getElementById('searchMasuk').value = '';
-          document.getElementById('masukInfo').classList.add('hidden');
-          document.getElementById('emptyMasuk').classList.remove('hidden');
-        } else {
-          selectedSiswaPulang = null;
-          document.getElementById('searchPulang').value = '';
-          document.getElementById('pulangInfo').classList.add('hidden');
-          document.getElementById('emptyPulang').classList.remove('hidden');
-        }
+        // Reset form setelah berhasil
+        document.getElementById(tipe + 'Kelas').value = '';
+        document.getElementById(tipe + 'SiswaSelect').innerHTML = '<option value="">-- Pilih Siswa --</option>';
+        resetAbsenInfo(tipe);
       }).catch(function(e) {
         playErrorBeep();
         showToast('Gagal: ' + e.message, 'error');
@@ -874,22 +917,6 @@
     // =============================================
     // TIDAK HADIR (SAKIT / IZIN / ALPA)
     // =============================================
-    function loadSiswaByKelas() {
-      var kelas = document.getElementById('tidakKelas').value;
-      var sel = document.getElementById('tidakSiswa');
-      sel.innerHTML = '<option value="">-- Pilih Siswa --</option>';
-      if (!kelas) return;
-
-      var filtered = allSiswa.filter(function(s) { return s.kelas === kelas; });
-      if (filtered.length === 0) {
-        showToast('Tidak ada siswa di kelas ini (muat Data Siswa dulu)', 'info');
-        return;
-      }
-      sel.innerHTML = '<option value="">-- Pilih Siswa --</option>' + filtered.map(function(s) {
-        return '<option value="' + escapeHtml(s.kodeQR) + '">' + escapeHtml(s.nama) + ' (' + escapeHtml(s.kodeQR) + ')</option>';
-      }).join('');
-    }
-
     function doTidakHadir() {
       var kode = document.getElementById('tidakSiswa').value;
       var keterangan = document.getElementById('tidakKeterangan').value;
@@ -982,14 +1009,11 @@
       var jm = document.getElementById('inputJadwalMasuk').value;
       var jp = document.getElementById('inputJadwalPulang').value;
       if (!kls || !jm || !jp) { showToast('Semua field wajib diisi', 'error'); return; }
-
       var btn = document.getElementById('btnSubmitJadwal');
       btn.disabled = true;
       btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px"></div> Menyimpan...';
-
       var payload = { data: { kelas: kls, jamMasuk: jm, jamPulang: jp } };
       if (editingJadwalIndex >= 0) payload.rowIndex = jadwalData[editingJadwalIndex].rowIndex;
-
       apiPost(editingJadwalIndex >= 0 ? 'updateJadwal' : 'addJadwal', payload).then(function() {
         showToast('Jadwal disimpan', 'success');
         closeModal('modalJadwal');
@@ -1017,21 +1041,6 @@
     // =============================================
     // LAPORAN
     // =============================================
-    function loadKelasDropdown() {
-      var sel = document.getElementById('laporanKelas');
-      var sel2 = document.getElementById('tidakKelas');
-      var currentVal = sel.value;
-      sel.innerHTML = '<option value="Semua">Semua Kelas</option>';
-      sel2.innerHTML = '<option value="">-- Pilih Kelas --</option>';
-      if (cachedClasses && cachedClasses.length > 0) {
-        cachedClasses.forEach(function(k) {
-          sel.innerHTML += '<option value="' + escapeHtml(k) + '">' + escapeHtml(k) + '</option>';
-          sel2.innerHTML += '<option value="' + escapeHtml(k) + '">' + escapeHtml(k) + '</option>';
-        });
-      }
-      sel.value = currentVal;
-    }
-
     function loadLaporan() {
       var tgl = document.getElementById('laporanTanggal').value;
       var kls = document.getElementById('laporanKelas').value;
@@ -1042,7 +1051,6 @@
       }
       var params = { tanggal: tgl };
       if (kls && kls !== 'Semua') params.kelas = kls;
-
       apiGet('getAbsensi', params).then(function(d) {
         var tb = document.getElementById('tbodyLaporan');
         if (!d || d.length === 0) {
@@ -1054,7 +1062,6 @@
           var bc = r.status === 'Hadir' ? 'badge-hadir' : r.status === 'Terlambat' ? 'badge-terlambat' : r.status === 'Pulang' ? 'badge-pulang' : (r.status === 'Sakit' ? 'badge-sakit' : (r.status === 'Izin' ? 'badge-izin' : 'badge-alpa'));
           return '<tr><td class="text-[var(--muted)]">' + (i+1) + '</td><td class="font-medium">' + escapeHtml(r.nama) + '</td><td>' + escapeHtml(r.kelas) + '</td><td class="text-sm">' + formatTanggal(r.tanggal) + '</td><td>' + escapeHtml(r.jamMasuk || '-') + '</td><td>' + escapeHtml(r.jamPulang || '-') + '</td><td><span class="badge ' + bc + '">' + escapeHtml(r.status) + '</span></td></tr>';
         }).join('');
-
         var hadir = d.filter(function(r) { return r.status === 'Hadir'; }).length;
         var terlambat = d.filter(function(r) { return r.status === 'Terlambat'; }).length;
         var sakit = d.filter(function(r) { return r.status === 'Sakit'; }).length;
@@ -1073,7 +1080,6 @@
       showToast('Mengunduh laporan...', 'info');
       var params = { tanggal: tgl };
       if (kls && kls !== 'Semua') params.kelas = kls;
-
       apiGet('getAbsensi', params).then(function(d) {
         if (!d || d.length === 0) { showToast('Tidak ada data untuk diekspor', 'error'); return; }
         var rows = [['No', 'Nama Siswa', 'Kelas', 'Tanggal', 'Jam Masuk', 'Jam Pulang', 'Status']];
