@@ -52,6 +52,7 @@
     @keyframes toastIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}@keyframes toastOut{from{transform:translateX(0);opacity:1}to{transform:translateX(100%);opacity:0}}
     .page{display:none;animation:pageIn .3s ease-out}.page.active{display:block}@keyframes pageIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
     #qr-reader{border-radius:.75rem;overflow:hidden;border:2px solid var(--border)}
+    #qr-reader video{border-radius:.5rem}
     .scan-flash{animation:scanFlash .4s ease-out}@keyframes scanFlash{0%{box-shadow:0 0 0 0 rgba(16,185,129,0.6)}100%{box-shadow:0 0 0 20px rgba(16,185,129,0)}}
     .scan-flash-error{animation:scanFlashError .4s ease-out}@keyframes scanFlashError{0%{box-shadow:0 0 0 0 rgba(239,68,68,0.6)}100%{box-shadow:0 0 0 20px rgba(239,68,68,0)}}
     .tab-btn{padding:.6rem 1.5rem;border-radius:.5rem .5rem 0 0;border:1px solid transparent;border-bottom:none;background:transparent;color:var(--muted);transition:all .2s;font-family:'DM Sans',sans-serif}
@@ -69,6 +70,7 @@
     .api-status{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
     .api-status.connected{background:var(--accent);box-shadow:0 0 6px var(--accent)}.api-status.disconnected{background:var(--danger);box-shadow:0 0 6px var(--danger)}.api-status.checking{background:var(--warning);animation:pulse 1s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
     .school-badge{background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(6,182,212,0.05));border:1px solid rgba(16,185,129,0.2);border-radius:.5rem;padding:.6rem .8rem}
+    .cooldown-bar{height:3px;background:var(--accent);border-radius:2px;transition:width 0.1s linear}
   </style>
 </head>
 <body>
@@ -124,13 +126,10 @@
       <section id="page-siswa" class="page">
         <div class="flex flex-col sm:flex-row gap-3 mb-4">
           <div class="relative flex-1"><i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)] text-sm"></i><input type="text" id="searchSiswa" class="input pl-9" placeholder="Cari nama atau kode QR..." oninput="filterSiswaTable()"></div>
-          <div class="flex gap-2">
-            <button class="btn btn-primary" onclick="openModalTambah()"><i class="fas fa-plus"></i> Tambah Siswa</button>
-            <label class="btn btn-secondary cursor-pointer"><i class="fas fa-file-import"></i> Impor Excel<input type="file" id="fileImport" accept=".xlsx,.xls" class="hidden" onchange="handleImportExcel(event)"></label>
-          </div>
+          <label class="btn btn-secondary cursor-pointer"><i class="fas fa-file-import"></i> Impor Excel<input type="file" id="fileImport" accept=".xlsx,.xls" class="hidden" onchange="handleImportExcel(event)"></label>
         </div>
         <div class="card p-0 overflow-hidden"><div class="overflow-x-auto max-h-[60vh] overflow-y-auto">
-          <table class="data-table"><thead><tr><th style="width:50px">No</th><th>Nama Siswa</th><th>Kelas</th><th>Kode QR</th><th>Tgl Daftar</th><th style="width:140px">Aksi</th></tr></thead>
+          <table class="data-table"><thead><tr><th style="width:50px">No</th><th>Nama Siswa</th><th>Kelas</th><th>Kode QR</th><th>Tgl Daftar</th><th style="width:100px">Aksi</th></tr></thead>
           <tbody id="tbodySiswa"><tr><td colspan="6"><div class="empty-state"><i class="fas fa-users block"></i><p class="text-sm">Belum ada data siswa</p></div></td></tr></tbody></table>
         </div></div>
       </section>
@@ -143,16 +142,29 @@
           <button class="tab-btn" data-tab="tidak" onclick="switchAbsenTab('tidak')"><i class="fas fa-user-xmark mr-1"></i> Tidak Hadir</button>
         </div>
 
-        <!-- Scanner (shared masuk & pulang) -->
+        <!-- Scanner -->
         <div id="scanContainer" class="card mb-0" style="border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:0">
           <div class="max-w-lg mx-auto py-4">
             <div id="qr-reader" style="width:100%"></div>
             <div id="scanResult" class="mt-4 hidden"><div id="scanResultContent" class="rounded-lg p-4 border text-center"></div></div>
-            <div class="mt-3 text-center"><button id="btnToggleScan" class="btn btn-secondary" onclick="toggleScanner()"><i class="fas fa-qrcode"></i> Mulai Scanner</button></div>
+            <!-- Bar cooldown anti-scan berulang -->
+            <div id="cooldownWrap" class="mt-2 hidden">
+              <div class="flex items-center justify-between text-xs text-[var(--muted)] mb-1">
+                <span>Menunggu scan berikutnya...</span>
+                <span id="cooldownText">5s</span>
+              </div>
+              <div class="w-full h-[3px] bg-[var(--border)] rounded-full overflow-hidden">
+                <div id="cooldownBar" class="cooldown-bar" style="width:100%"></div>
+              </div>
+            </div>
+            <div class="mt-3 text-center flex items-center justify-center gap-2">
+              <button id="btnToggleScan" class="btn btn-secondary" onclick="toggleScanner()"><i class="fas fa-qrcode"></i> Mulai Scanner</button>
+              <button id="btnSwitchCam" class="btn btn-secondary" onclick="switchCamera()" title="Ganti Kamera"><i class="fas fa-camera-rotate"></i></button>
+            </div>
           </div>
         </div>
 
-        <!-- Card dengan 3 tab contents -->
+        <!-- Tab contents -->
         <div class="card" style="border-top-left-radius:0;border-top-right-radius:0;">
 
           <!-- Tab Masuk -->
@@ -261,7 +273,7 @@
             </div>
             <div class="overflow-x-auto"><table class="data-table"><thead><tr><th style="width:50px">No</th><th>Kelas</th><th>Jam Masuk</th><th>Jam Pulang</th><th style="width:120px">Aksi</th></tr></thead><tbody id="jadwalTableBody"><tr><td colspan="5"><div class="empty-state py-6"><i class="fas fa-calendar-alt block"></i><p class="text-sm">Belum ada jadwal kelas</p></div></td></tr></tbody></table></div>
           </div>
-          <div class="card"><h3 class="font-display font-semibold text-base mb-1">Informasi Sistem</h3><div class="mt-3 p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-sm space-y-1"><div class="flex justify-between"><span class="text-[var(--muted)]">Versi</span><span>1.6.0</span></div><div class="flex justify-between"><span class="text-[var(--muted)]">Format Kode QR</span><span>Kelas-00xx</span></div><div class="flex justify-between"><span class="text-[var(--muted)]">Backend</span><span>Google Apps Script</span></div><div class="flex justify-between"><span class="text-[var(--muted)]">Frontend</span><span>GitHub Pages</span></div></div></div>
+          <div class="card"><h3 class="font-display font-semibold text-base mb-1">Informasi Sistem</h3><div class="mt-3 p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-sm space-y-1"><div class="flex justify-between"><span class="text-[var(--muted)]">Versi</span><span>1.7.0</span></div><div class="flex justify-between"><span class="text-[var(--muted)]">Format Kode QR</span><span>Kelas-00xx</span></div><div class="flex justify-between"><span class="text-[var(--muted)]">Backend</span><span>Google Apps Script</span></div><div class="flex justify-between"><span class="text-[var(--muted)]">Frontend</span><span>GitHub Pages</span></div></div></div>
         </div>
       </section>
 
@@ -283,19 +295,6 @@
       </section>
     </div>
   </main>
-
-  <!-- MODAL TAMBAH SISWA -->
-  <div id="modalTambah" class="modal-overlay" onclick="if(event.target===this)closeModal('modalTambah')">
-    <div class="modal-content">
-      <div class="flex items-center justify-between mb-5"><h3 class="font-display font-bold text-lg">Tambah Siswa Baru</h3><button onclick="closeModal('modalTambah')" class="text-[var(--muted)] hover:text-[var(--text)]"><i class="fas fa-times"></i></button></div>
-      <div class="space-y-4">
-        <div><label class="label">Nama Siswa</label><input type="text" id="inputNama" class="input" placeholder="Masukkan nama lengkap"></div>
-        <div><label class="label">Kelas</label><input type="text" id="inputKelas" class="input" placeholder="Contoh: 1A, 2B, 3C"></div>
-        <div class="p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-sm text-[var(--muted)] flex items-start gap-2"><i class="fas fa-info-circle text-[var(--info)] mt-0.5"></i><span>Kode QR otomatis dibuat dengan format <code class="text-[var(--accent)]">Kelas-00xx</code> sesuai ID.</span></div>
-      </div>
-      <div class="flex gap-3 mt-6"><button class="btn btn-secondary flex-1" onclick="closeModal('modalTambah')">Batal</button><button id="btnSubmitSiswa" class="btn btn-primary flex-1" onclick="submitTambahSiswa()"><i class="fas fa-save"></i> Simpan</button></div>
-    </div>
-  </div>
 
   <!-- MODAL JADWAL -->
   <div id="modalJadwal" class="modal-overlay" onclick="if(event.target===this)closeModal('modalJadwal')">
@@ -460,7 +459,6 @@
         animateCount('statTerlambat', d.terlambat);
         animateCount('statBelum', d.belumAbsen);
         animateCount('statPulang', d.sudahPulang);
-        // Simpan daftar kelas dari dashboard untuk digunakan oleh dropdown lain
         if (d.classes) cachedClasses = d.classes;
         renderChart(d.last7Days, d.last7Hadir, d.last7Terlambat);
         var a = document.getElementById('recentActivity');
@@ -499,7 +497,7 @@
     }
 
     // =============================================
-    // DATA SISWA
+    // DATA SISWA (tanpa tombol Tambah)
     // =============================================
     var allSiswa = [];
 
@@ -511,32 +509,13 @@
       var tb = document.getElementById('tbodySiswa');
       if (!data || data.length === 0) { tb.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-users block"></i><p class="text-sm">Belum ada data siswa</p></div></td></tr>'; return; }
       tb.innerHTML = data.map(function(s, i) {
-        return '<tr><td class="text-[var(--muted)]">' + (i+1) + '</td><td><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-full bg-[var(--accent-glow)] flex items-center justify-center text-[var(--accent)] text-xs font-bold flex-shrink-0">' + escapeHtml(s.nama.charAt(0)) + '</div><span class="font-medium">' + escapeHtml(s.nama) + '</span></div></td><td>' + escapeHtml(s.kelas) + '</td><td><code class="text-[var(--accent)] bg-[var(--accent-glow)] px-2 py-0.5 rounded text-xs font-mono">' + escapeHtml(s.kodeQR) + '</code></td><td class="text-[var(--muted)] text-sm">' + formatTanggal(s.tanggalDaftar) + '</td><td><div class="flex gap-1"><button class="btn btn-secondary py-1 px-2 text-xs" onclick="showQR(\'' + escapeHtml(s.kodeQR) + '\',\'' + escapeHtml(s.nama) + '\',\'' + escapeHtml(s.kelas) + '\')"><i class="fas fa-qrcode"></i></button><button class="btn btn-danger py-1 px-2 text-xs" onclick="confirmDelete(' + s.rowIndex + ',\'' + escapeHtml(s.nama) + '\')"><i class="fas fa-trash"></i></button></div></td></tr>';
+        return '<tr><td class="text-[var(--muted)]">' + (i+1) + '</td><td><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-full bg-[var(--accent-glow)] flex items-center justify-center text-[var(--accent)] text-xs font-bold flex-shrink-0">' + escapeHtml(s.nama.charAt(0)) + '</div><span class="font-medium">' + escapeHtml(s.nama) + '</span></div></td><td>' + escapeHtml(s.kelas) + '</td><td><code class="text-[var(--accent)] bg-[var(--accent-glow)] px-2 py-0.5 rounded text-xs font-mono">' + escapeHtml(s.kodeQR) + '</code></td><td class="text-[var(--muted)] text-sm">' + formatTanggal(s.tanggalDaftar) + '</td><td><button class="btn btn-secondary py-1 px-2 text-xs" onclick="showQR(\'' + escapeHtml(s.kodeQR) + '\',\'' + escapeHtml(s.nama) + '\',\'' + escapeHtml(s.kelas) + '\')"><i class="fas fa-qrcode"></i></button></td></tr>';
       }).join('');
     }
 
     function filterSiswaTable() {
       var q = document.getElementById('searchSiswa').value.toLowerCase();
       renderSiswaTable(allSiswa.filter(function(s) { return s.nama.toLowerCase().indexOf(q) !== -1 || s.kodeQR.toLowerCase().indexOf(q) !== -1 || s.kelas.toLowerCase().indexOf(q) !== -1; }));
-    }
-
-    function openModalTambah() {
-      document.getElementById('inputNama').value = ''; document.getElementById('inputKelas').value = '';
-      openModal('modalTambah');
-      setTimeout(function() { document.getElementById('inputNama').focus(); }, 200);
-    }
-
-    function submitTambahSiswa() {
-      var nm = document.getElementById('inputNama').value.trim(), kl = document.getElementById('inputKelas').value.trim();
-      if (!nm) { showToast('Nama siswa wajib diisi', 'error'); return; }
-      if (!kl) { showToast('Kelas wajib diisi', 'error'); return; }
-      var btn = document.getElementById('btnSubmitSiswa');
-      btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px"></div> Menyimpan...';
-      apiPost('addSiswa', { data: { nama: nm, kelas: kl } }).then(function(r) {
-        showToast('Siswa "' + nm + '" ditambahkan. Kode: ' + r.kode, 'success');
-        closeModal('modalTambah');
-        loadSiswa();
-      }).catch(function(e) { showToast('Gagal: ' + e.message, 'error'); }).finally(function() { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Simpan'; });
     }
 
     function handleImportExcel(event) {
@@ -590,13 +569,72 @@
     }
 
     // =============================================
-    // ABSENSI - 3 TAB (MASUK / PULANG / TIDAK HADIR)
+    // ABSENSI - 3 TAB
     // =============================================
     var currentAbsenTab = 'masuk';
     var scannerRunning = false;
     var html5QrCode = null;
     var selectedSiswaMasuk = null;
     var selectedSiswaPulang = null;
+
+    // --- ANTI SCAN BERULANG ---
+    var SCAN_COOLDOWN_MS = 5000; // 5 detik cooldown
+    var lastScannedCode = '';
+    var lastScanTime = 0;
+    var cooldownTimer = null;
+    var cooldownAnimFrame = null;
+
+    function isCooldownActive() {
+      return (Date.now() - lastScanTime) < SCAN_COOLDOWN_MS;
+    }
+
+    function startCooldown() {
+      lastScanTime = Date.now();
+      var wrap = document.getElementById('cooldownWrap');
+      var bar = document.getElementById('cooldownBar');
+      var txt = document.getElementById('cooldownText');
+      wrap.classList.remove('hidden');
+      bar.style.width = '100%';
+
+      var start = Date.now();
+      if (cooldownAnimFrame) cancelAnimationFrame(cooldownAnimFrame);
+      if (cooldownTimer) clearTimeout(cooldownTimer);
+
+      function tick() {
+        var elapsed = Date.now() - start;
+        var remaining = SCAN_COOLDOWN_MS - elapsed;
+        if (remaining <= 0) {
+          wrap.classList.add('hidden');
+          bar.style.width = '0%';
+          return;
+        }
+        var pct = (remaining / SCAN_COOLDOWN_MS) * 100;
+        bar.style.width = pct + '%';
+        txt.textContent = Math.ceil(remaining / 1000) + 's';
+        cooldownAnimFrame = requestAnimationFrame(tick);
+      }
+      tick();
+
+      cooldownTimer = setTimeout(function() {
+        wrap.classList.add('hidden');
+        bar.style.width = '0%';
+        lastScannedCode = '';
+      }, SCAN_COOLDOWN_MS);
+    }
+
+    // --- KAMERA DEPAN/BELAKANG ---
+    var useFrontCamera = false;
+
+    function switchCamera() {
+      useFrontCamera = !useFrontCamera;
+      var wasRunning = scannerRunning;
+      if (wasRunning) {
+        stopScanner().then(function() {
+          startScanner();
+        });
+      }
+      showToast(useFrontCamera ? 'Kamera depan aktif' : 'Kamera belakang aktif', 'info');
+    }
 
     function switchAbsenTab(tab) {
       currentAbsenTab = tab;
@@ -616,10 +654,11 @@
     // QR SCANNER
     // =============================================
     function startScanner() {
-      if (scannerRunning) return;
+      if (scannerRunning) return Promise.resolve();
       html5QrCode = new Html5Qrcode("qr-reader");
-      html5QrCode.start(
-        { facingMode: "environment" },
+      var facingMode = useFrontCamera ? "user" : "environment";
+      return html5QrCode.start(
+        { facingMode: facingMode },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         onScanSuccess,
         function() {}
@@ -627,13 +666,30 @@
         scannerRunning = true;
         document.getElementById('btnToggleScan').innerHTML = '<i class="fas fa-stop"></i> Stop Scanner';
       }).catch(function(e) {
+        // Jika kamera depan gagal, fallback ke belakang
+        if (useFrontCamera) {
+          useFrontCamera = false;
+          html5QrCode = new Html5Qrcode("qr-reader");
+          return html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            onScanSuccess,
+            function() {}
+          ).then(function() {
+            scannerRunning = true;
+            document.getElementById('btnToggleScan').innerHTML = '<i class="fas fa-stop"></i> Stop Scanner';
+            showToast('Kamera depan tidak tersedia, menggunakan kamera belakang', 'info');
+          }).catch(function(e2) {
+            showToast('Gagal memulai scanner: ' + e2.message, 'error');
+          });
+        }
         showToast('Gagal memulai scanner: ' + e.message, 'error');
       });
     }
 
     function stopScanner() {
-      if (!scannerRunning || !html5QrCode) return;
-      html5QrCode.stop().then(function() {
+      if (!scannerRunning || !html5QrCode) return Promise.resolve();
+      return html5QrCode.stop().then(function() {
         scannerRunning = false;
         document.getElementById('btnToggleScan').innerHTML = '<i class="fas fa-qrcode"></i> Mulai Scanner';
       }).catch(function() {
@@ -647,15 +703,27 @@
       else startScanner();
     }
 
+    // --- HANDLER SCAN DENGAN COOLDOWN ---
     function onScanSuccess(decodedText) {
+      var code = decodedText.trim();
+
+      // Blokir jika kode sama dan masih dalam cooldown
+      if (code === lastScannedCode && isCooldownActive()) {
+        return; // Senyap, abaikan scan berulang
+      }
+
+      // Jika kode beda tapi masih cooldown, proses saja (satu siswa scan lalu langsung siswa lain)
+      // Tapi jika kode sama, wajib tunggu cooldown selesai
+
+      lastScannedCode = code;
       playSuccessBeep();
       var reader = document.getElementById('qr-reader');
       reader.classList.add('scan-flash');
       setTimeout(function() { reader.classList.remove('scan-flash'); }, 500);
-      processQRCode(decodedText);
+      processQRCode(code);
+      startCooldown();
     }
 
-    // PERBAIKAN: gunakan 'cariSiswa' dengan param 'keyword' (bukan 'getSiswaByKode' dengan 'kode')
     function processQRCode(kode) {
       var found = null;
       for (var i = 0; i < allSiswa.length; i++) {
@@ -665,7 +733,6 @@
       if (found) {
         handleScannedSiswa(found);
       } else {
-        // Fallback ke API — action: cariSiswa, param: keyword
         apiGet('cariSiswa', { keyword: kode }).then(function(results) {
           if (!results || results.length === 0) {
             playErrorBeep();
@@ -772,7 +839,6 @@
 
     // =============================================
     // PROSES ABSENSI MASUK / PULANG
-    // PERBAIKAN: action = 'prosesAbsensi', payload = { kode, tipe }
     // =============================================
     function doAbsensi(tipe) {
       var s = tipe === 'masuk' ? selectedSiswaMasuk : selectedSiswaPulang;
@@ -782,7 +848,6 @@
       btn.disabled = true;
       btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px"></div> Memproses...';
 
-      // PERBAIKAN UTAMA: action 'prosesAbsensi', field 'kode' dan 'tipe' di level root payload
       apiPost('prosesAbsensi', { kode: s.kodeQR, tipe: tipe }).then(function(r) {
         playSuccessBeep();
         showToast(r.message || 'Absensi berhasil', 'success');
@@ -808,7 +873,6 @@
 
     // =============================================
     // TIDAK HADIR (SAKIT / IZIN / ALPA)
-    // PERBAIKAN: action = 'prosesTidakHadir', payload = { kode, keterangan }
     // =============================================
     function loadSiswaByKelas() {
       var kelas = document.getElementById('tidakKelas').value;
@@ -836,7 +900,6 @@
       btn.disabled = true;
       btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px"></div> Memproses...';
 
-      // PERBAIKAN UTAMA: action 'prosesTidakHadir', field 'kode' dan 'keterangan' di level root payload
       apiPost('prosesTidakHadir', { kode: kode, keterangan: keterangan }).then(function(r) {
         playSuccessBeep();
         showToast(r.message || 'Ketidakhadiran direkam', 'success');
@@ -853,7 +916,6 @@
 
     // =============================================
     // KONFIGURASI
-    // PERBAIKAN: action 'getKonfigurasi' dan 'updateKonfigurasi', key pakai underscore
     // =============================================
     function loadKonfigurasi() {
       apiGet('getKonfigurasi').then(function(c) {
@@ -861,15 +923,13 @@
           document.getElementById('configJamMasuk').value = c.jam_masuk_default || '07:00';
           document.getElementById('configJamPulang').value = c.jam_pulang_default || '14:00';
         }
-      }).catch(function() { /* biarkan default input */ });
+      }).catch(function() {});
     }
 
     function saveConfig() {
       var jm = document.getElementById('configJamMasuk').value;
       var jp = document.getElementById('configJamPulang').value;
       if (!jm || !jp) { showToast('Jam masuk dan pulang wajib diisi', 'error'); return; }
-
-      // PERBAIKAN: key harus pakai underscore sesuai backend: jam_masuk_default, jam_pulang_default
       apiPost('updateKonfigurasi', { data: { jam_masuk_default: jm, jam_pulang_default: jp } }).then(function() {
         showToast('Konfigurasi default disimpan', 'success');
       }).catch(function(e) { showToast('Gagal: ' + e.message, 'error'); });
@@ -945,7 +1005,6 @@
       document.getElementById('konfirmasiTitle').textContent = 'Hapus Jadwal?';
       document.getElementById('konfirmasiMessage').textContent = 'Jadwal kelas "' + j.kelas + '" akan dihapus.';
       document.getElementById('btnKonfirmasiYa').onclick = function() {
-        // PERBAIKAN: kirim rowIndex sesuai data spreadsheet, bukan index array
         apiPost('deleteJadwal', { rowIndex: j.rowIndex }).then(function() {
           showToast('Jadwal dihapus', 'success');
           closeModal('modalKonfirmasi');
@@ -957,7 +1016,6 @@
 
     // =============================================
     // LAPORAN
-    // PERBAIKAN: action 'getAbsensi' (bukan 'getLaporan'), kelas diambil dari cache dashboard
     // =============================================
     function loadKelasDropdown() {
       var sel = document.getElementById('laporanKelas');
@@ -965,8 +1023,6 @@
       var currentVal = sel.value;
       sel.innerHTML = '<option value="Semua">Semua Kelas</option>';
       sel2.innerHTML = '<option value="">-- Pilih Kelas --</option>';
-
-      // PERBAIKAN: tidak ada endpoint 'getKelasList' di backend, gunakan cachedClasses dari dashboard
       if (cachedClasses && cachedClasses.length > 0) {
         cachedClasses.forEach(function(k) {
           sel.innerHTML += '<option value="' + escapeHtml(k) + '">' + escapeHtml(k) + '</option>';
@@ -984,11 +1040,9 @@
         tgl = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
         document.getElementById('laporanTanggal').value = tgl;
       }
-
       var params = { tanggal: tgl };
       if (kls && kls !== 'Semua') params.kelas = kls;
 
-      // PERBAIKAN: action 'getAbsensi' (bukan 'getLaporan')
       apiGet('getAbsensi', params).then(function(d) {
         var tb = document.getElementById('tbodyLaporan');
         if (!d || d.length === 0) {
@@ -996,7 +1050,6 @@
           document.getElementById('laporanSummary').classList.add('hidden');
           return;
         }
-
         tb.innerHTML = d.map(function(r, i) {
           var bc = r.status === 'Hadir' ? 'badge-hadir' : r.status === 'Terlambat' ? 'badge-terlambat' : r.status === 'Pulang' ? 'badge-pulang' : (r.status === 'Sakit' ? 'badge-sakit' : (r.status === 'Izin' ? 'badge-izin' : 'badge-alpa'));
           return '<tr><td class="text-[var(--muted)]">' + (i+1) + '</td><td class="font-medium">' + escapeHtml(r.nama) + '</td><td>' + escapeHtml(r.kelas) + '</td><td class="text-sm">' + formatTanggal(r.tanggal) + '</td><td>' + escapeHtml(r.jamMasuk || '-') + '</td><td>' + escapeHtml(r.jamPulang || '-') + '</td><td><span class="badge ' + bc + '">' + escapeHtml(r.status) + '</span></td></tr>';
@@ -1017,21 +1070,14 @@
       var tgl = document.getElementById('laporanTanggal').value;
       var kls = document.getElementById('laporanKelas').value;
       if (!tgl) { showToast('Pilih tanggal terlebih dahulu', 'error'); return; }
-
       showToast('Mengunduh laporan...', 'info');
-
       var params = { tanggal: tgl };
       if (kls && kls !== 'Semua') params.kelas = kls;
 
-      // PERBAIKAN: action 'getAbsensi' (bukan 'getLaporan')
       apiGet('getAbsensi', params).then(function(d) {
         if (!d || d.length === 0) { showToast('Tidak ada data untuk diekspor', 'error'); return; }
-
         var rows = [['No', 'Nama Siswa', 'Kelas', 'Tanggal', 'Jam Masuk', 'Jam Pulang', 'Status']];
-        d.forEach(function(r, i) {
-          rows.push([i + 1, r.nama, r.kelas, r.tanggal, r.jamMasuk || '-', r.jamPulang || '-', r.status]);
-        });
-
+        d.forEach(function(r, i) { rows.push([i + 1, r.nama, r.kelas, r.tanggal, r.jamMasuk || '-', r.jamPulang || '-', r.status]); });
         var ws = XLSX.utils.aoa_to_sheet(rows);
         var wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Laporan Absensi');
