@@ -359,7 +359,7 @@
       Object.keys(data).forEach(function(key) { payload[key] = data[key]; });
       return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload), redirect: 'follow' })
         .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(function(j) { if (!j.success) throw new Error((j.data && j.data.error) ? j.data.error : 'Error server'); return j.data; });
+        .then(function(j) { if (!j.success) throw new Error((j.data && j.data.error) ? j.data.error : (j.data && j.data.message) ? j.data.message : 'Error server'); return j.data; });
     }
 
     function checkApiConnection() {
@@ -451,6 +451,7 @@
     // DASHBOARD
     // =============================================
     var chartInstance = null;
+    var cachedClasses = [];
 
     function loadDashboard() {
       apiGet('getDashboard').then(function(d) {
@@ -459,10 +460,13 @@
         animateCount('statTerlambat', d.terlambat);
         animateCount('statBelum', d.belumAbsen);
         animateCount('statPulang', d.sudahPulang);
+        // Simpan daftar kelas dari dashboard untuk digunakan oleh dropdown lain
+        if (d.classes) cachedClasses = d.classes;
         renderChart(d.last7Days, d.last7Hadir, d.last7Terlambat);
         var a = document.getElementById('recentActivity');
-        if (!d.recentActivity || d.recentActivity.length === 0) { a.innerHTML = '<div class="empty-state py-8"><i class="fas fa-history block"></i><p class="text-sm">Belum ada aktivitas</p></div>'; }
-        else {
+        if (!d.recentActivity || d.recentActivity.length === 0) {
+          a.innerHTML = '<div class="empty-state py-8"><i class="fas fa-history block"></i><p class="text-sm">Belum ada aktivitas</p></div>';
+        } else {
           a.innerHTML = d.recentActivity.map(function(r) {
             var bc = r.status === 'Hadir' ? 'badge-hadir' : r.status === 'Terlambat' ? 'badge-terlambat' : r.status === 'Pulang' ? 'badge-pulang' : (r.status === 'Sakit' ? 'badge-sakit' : (r.status === 'Izin' ? 'badge-izin' : 'badge-alpa'));
             return '<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-[rgba(16,185,129,0.04)] transition-colors"><div class="w-8 h-8 rounded-full bg-[var(--accent-glow)] flex items-center justify-center text-[var(--accent)] text-xs font-bold flex-shrink-0">' + escapeHtml(r.nama.charAt(0)) + '</div><div class="flex-1 min-w-0"><div class="text-sm font-medium truncate">' + escapeHtml(r.nama) + '</div><div class="text-xs text-[var(--muted)]">' + escapeHtml(r.kelas) + ' &middot; ' + formatTanggal(r.tanggal) + '</div></div><span class="badge ' + bc + '">' + escapeHtml(r.status) + '</span></div>';
@@ -599,7 +603,6 @@
       document.querySelectorAll('.tab-btn').forEach(function(el) { el.classList.toggle('active', el.getAttribute('data-tab') === tab); });
       document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.toggle('active', el.id === 'tab-' + tab); });
 
-      // Tampilkan/sembunyikan scanner container
       var scanContainer = document.getElementById('scanContainer');
       if (tab === 'tidak') {
         scanContainer.style.display = 'none';
@@ -652,8 +655,8 @@
       processQRCode(decodedText);
     }
 
+    // PERBAIKAN: gunakan 'cariSiswa' dengan param 'keyword' (bukan 'getSiswaByKode' dengan 'kode')
     function processQRCode(kode) {
-      // Cari dari cache allSiswa dulu
       var found = null;
       for (var i = 0; i < allSiswa.length; i++) {
         if (allSiswa[i].kodeQR === kode) { found = allSiswa[i]; break; }
@@ -662,14 +665,14 @@
       if (found) {
         handleScannedSiswa(found);
       } else {
-        // Fallback ke API
-        apiGet('getSiswaByKode', { kode: kode }).then(function(s) {
-          if (!s) {
+        // Fallback ke API — action: cariSiswa, param: keyword
+        apiGet('cariSiswa', { keyword: kode }).then(function(results) {
+          if (!results || results.length === 0) {
             playErrorBeep();
             showScanResult(false, 'Kode QR "' + kode + '" tidak ditemukan');
             return;
           }
-          handleScannedSiswa(s);
+          handleScannedSiswa(results[0]);
         }).catch(function(e) {
           playErrorBeep();
           showScanResult(false, e.message);
@@ -762,14 +765,14 @@
       }
     }
 
-    // Tutup dropdown saat klik di luar
     document.addEventListener('click', function(e) {
       if (!e.target.closest('#swMasukWrap')) document.getElementById('dropMasuk').classList.remove('show');
       if (!e.target.closest('#swPulangWrap')) document.getElementById('dropPulang').classList.remove('show');
     });
 
     // =============================================
-    // PROSES ABSENSI
+    // PROSES ABSENSI MASUK / PULANG
+    // PERBAIKAN: action = 'prosesAbsensi', payload = { kode, tipe }
     // =============================================
     function doAbsensi(tipe) {
       var s = tipe === 'masuk' ? selectedSiswaMasuk : selectedSiswaPulang;
@@ -779,7 +782,8 @@
       btn.disabled = true;
       btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px"></div> Memproses...';
 
-      apiPost('recordAttendance', { data: { kodeQR: s.kodeQR, tipe: tipe } }).then(function(r) {
+      // PERBAIKAN UTAMA: action 'prosesAbsensi', field 'kode' dan 'tipe' di level root payload
+      apiPost('prosesAbsensi', { kode: s.kodeQR, tipe: tipe }).then(function(r) {
         playSuccessBeep();
         showToast(r.message || 'Absensi berhasil', 'success');
         if (tipe === 'masuk') {
@@ -804,6 +808,7 @@
 
     // =============================================
     // TIDAK HADIR (SAKIT / IZIN / ALPA)
+    // PERBAIKAN: action = 'prosesTidakHadir', payload = { kode, keterangan }
     // =============================================
     function loadSiswaByKelas() {
       var kelas = document.getElementById('tidakKelas').value;
@@ -813,7 +818,7 @@
 
       var filtered = allSiswa.filter(function(s) { return s.kelas === kelas; });
       if (filtered.length === 0) {
-        showToast('Tidak ada siswa di kelas ini (cache kosong, muat Data Siswa dulu)', 'info');
+        showToast('Tidak ada siswa di kelas ini (muat Data Siswa dulu)', 'info');
         return;
       }
       sel.innerHTML = '<option value="">-- Pilih Siswa --</option>' + filtered.map(function(s) {
@@ -831,7 +836,8 @@
       btn.disabled = true;
       btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px"></div> Memproses...';
 
-      apiPost('recordAttendance', { data: { kodeQR: kode, tipe: keterangan } }).then(function(r) {
+      // PERBAIKAN UTAMA: action 'prosesTidakHadir', field 'kode' dan 'keterangan' di level root payload
+      apiPost('prosesTidakHadir', { kode: kode, keterangan: keterangan }).then(function(r) {
         playSuccessBeep();
         showToast(r.message || 'Ketidakhadiran direkam', 'success');
         document.getElementById('tidakSiswa').value = '';
@@ -847,14 +853,15 @@
 
     // =============================================
     // KONFIGURASI
+    // PERBAIKAN: action 'getKonfigurasi' dan 'updateKonfigurasi', key pakai underscore
     // =============================================
     function loadKonfigurasi() {
-      apiGet('getConfig').then(function(c) {
+      apiGet('getKonfigurasi').then(function(c) {
         if (c) {
-          document.getElementById('configJamMasuk').value = c.jamMasuk || '07:00';
-          document.getElementById('configJamPulang').value = c.jamPulang || '13:00';
+          document.getElementById('configJamMasuk').value = c.jam_masuk_default || '07:00';
+          document.getElementById('configJamPulang').value = c.jam_pulang_default || '14:00';
         }
-      }).catch(function() { /* gagal load config, biarkan default */ });
+      }).catch(function() { /* biarkan default input */ });
     }
 
     function saveConfig() {
@@ -862,7 +869,8 @@
       var jp = document.getElementById('configJamPulang').value;
       if (!jm || !jp) { showToast('Jam masuk dan pulang wajib diisi', 'error'); return; }
 
-      apiPost('saveConfig', { data: { jamMasuk: jm, jamPulang: jp } }).then(function() {
+      // PERBAIKAN: key harus pakai underscore sesuai backend: jam_masuk_default, jam_pulang_default
+      apiPost('updateKonfigurasi', { data: { jam_masuk_default: jm, jam_pulang_default: jp } }).then(function() {
         showToast('Konfigurasi default disimpan', 'success');
       }).catch(function(e) { showToast('Gagal: ' + e.message, 'error'); });
     }
@@ -920,7 +928,7 @@
       btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px"></div> Menyimpan...';
 
       var payload = { data: { kelas: kls, jamMasuk: jm, jamPulang: jp } };
-      if (editingJadwalIndex >= 0) payload.rowIndex = editingJadwalIndex;
+      if (editingJadwalIndex >= 0) payload.rowIndex = jadwalData[editingJadwalIndex].rowIndex;
 
       apiPost(editingJadwalIndex >= 0 ? 'updateJadwal' : 'addJadwal', payload).then(function() {
         showToast('Jadwal disimpan', 'success');
@@ -937,7 +945,8 @@
       document.getElementById('konfirmasiTitle').textContent = 'Hapus Jadwal?';
       document.getElementById('konfirmasiMessage').textContent = 'Jadwal kelas "' + j.kelas + '" akan dihapus.';
       document.getElementById('btnKonfirmasiYa').onclick = function() {
-        apiPost('deleteJadwal', { rowIndex: idx }).then(function() {
+        // PERBAIKAN: kirim rowIndex sesuai data spreadsheet, bukan index array
+        apiPost('deleteJadwal', { rowIndex: j.rowIndex }).then(function() {
           showToast('Jadwal dihapus', 'success');
           closeModal('modalKonfirmasi');
           loadJadwal();
@@ -948,22 +957,23 @@
 
     // =============================================
     // LAPORAN
+    // PERBAIKAN: action 'getAbsensi' (bukan 'getLaporan'), kelas diambil dari cache dashboard
     // =============================================
     function loadKelasDropdown() {
-      apiGet('getKelasList').then(function(list) {
-        var sel = document.getElementById('laporanKelas');
-        var sel2 = document.getElementById('tidakKelas');
-        var currentVal = sel.value;
-        sel.innerHTML = '<option value="Semua">Semua Kelas</option>';
-        sel2.innerHTML = '<option value="">-- Pilih Kelas --</option>';
-        if (list && list.length > 0) {
-          list.forEach(function(k) {
-            sel.innerHTML += '<option value="' + escapeHtml(k) + '">' + escapeHtml(k) + '</option>';
-            sel2.innerHTML += '<option value="' + escapeHtml(k) + '">' + escapeHtml(k) + '</option>';
-          });
-        }
-        sel.value = currentVal;
-      }).catch(function() { /* silent */ });
+      var sel = document.getElementById('laporanKelas');
+      var sel2 = document.getElementById('tidakKelas');
+      var currentVal = sel.value;
+      sel.innerHTML = '<option value="Semua">Semua Kelas</option>';
+      sel2.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+
+      // PERBAIKAN: tidak ada endpoint 'getKelasList' di backend, gunakan cachedClasses dari dashboard
+      if (cachedClasses && cachedClasses.length > 0) {
+        cachedClasses.forEach(function(k) {
+          sel.innerHTML += '<option value="' + escapeHtml(k) + '">' + escapeHtml(k) + '</option>';
+          sel2.innerHTML += '<option value="' + escapeHtml(k) + '">' + escapeHtml(k) + '</option>';
+        });
+      }
+      sel.value = currentVal;
     }
 
     function loadLaporan() {
@@ -978,7 +988,8 @@
       var params = { tanggal: tgl };
       if (kls && kls !== 'Semua') params.kelas = kls;
 
-      apiGet('getLaporan', params).then(function(d) {
+      // PERBAIKAN: action 'getAbsensi' (bukan 'getLaporan')
+      apiGet('getAbsensi', params).then(function(d) {
         var tb = document.getElementById('tbodyLaporan');
         if (!d || d.length === 0) {
           tb.innerHTML = '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-file-alt block"></i><p class="text-sm">Tidak ada data untuk filter ini</p></div></td></tr>';
@@ -991,7 +1002,6 @@
           return '<tr><td class="text-[var(--muted)]">' + (i+1) + '</td><td class="font-medium">' + escapeHtml(r.nama) + '</td><td>' + escapeHtml(r.kelas) + '</td><td class="text-sm">' + formatTanggal(r.tanggal) + '</td><td>' + escapeHtml(r.jamMasuk || '-') + '</td><td>' + escapeHtml(r.jamPulang || '-') + '</td><td><span class="badge ' + bc + '">' + escapeHtml(r.status) + '</span></td></tr>';
         }).join('');
 
-        // Ringkasan
         var hadir = d.filter(function(r) { return r.status === 'Hadir'; }).length;
         var terlambat = d.filter(function(r) { return r.status === 'Terlambat'; }).length;
         var sakit = d.filter(function(r) { return r.status === 'Sakit'; }).length;
@@ -1013,7 +1023,8 @@
       var params = { tanggal: tgl };
       if (kls && kls !== 'Semua') params.kelas = kls;
 
-      apiGet('getLaporan', params).then(function(d) {
+      // PERBAIKAN: action 'getAbsensi' (bukan 'getLaporan')
+      apiGet('getAbsensi', params).then(function(d) {
         if (!d || d.length === 0) { showToast('Tidak ada data untuk diekspor', 'error'); return; }
 
         var rows = [['No', 'Nama Siswa', 'Kelas', 'Tanggal', 'Jam Masuk', 'Jam Pulang', 'Status']];
